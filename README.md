@@ -113,30 +113,30 @@ During the lab, attendees will create IAM roles and policies. Other resources su
 The following resources must be manually removed after all CloudFormation stacks have been deleted:
 * Backup account
   - Global 
-   - CloudFormation Administration and Execution roles
-   - (Optional) IAM user with programmatic access - if you performed mass deployments using the AWS CLI
+    - CloudFormation Administration and Execution roles
+    - (Optional) IAM user with programmatic access - if you performed mass deployments using the AWS CLI
   - Primary region 
-   - EBS volumes (20 GB) which were attached to Veeam Backup for AWS instances
-   - Snapshots of VBAWS instances created by data lifecycle manager policies
-   - The EC2 key pair named "vbaws-lab-backup-primary"
-   - Lambda function log groups in CloudWatch
+    - EBS volumes (20 GB) which were attached to Veeam Backup for AWS instances
+    - Snapshots of VBAWS instances created by data lifecycle manager policies
+    - The EC2 key pair named "vbaws-lab-backup-primary"
+    - Lambda function log groups in CloudWatch
   - Secondary region
-   - Lambda function log groups in CloudWatch
+    - Lambda function log groups in CloudWatch
   - Extra credit / prize region 
-   - VPCs which are restored to the region used for the extra credit / prize portion of the lab to simulate restores of VPCs using VBAWS
+    - VPCs which are restored to the region used for the extra credit / prize portion of the lab to simulate restores of VPCs using VBAWS
 
 * Production account
   - Global 
-   - IAM roles named "source" that are created by attendees to simulate creation of a cross-account IAM role to be used by VBAWS
-   - IAM roles named "instance" that are created by attendees to simulate creation of instance profile roles to configure SSM and application-consistent snapshots
-   - IAM policies named "source", "vss", and "vpc" that are applied to the source and instance roles
-   - CloudFormation StackSet Execution role
+    - IAM roles named "source" that are created by attendees to simulate creation of a cross-account IAM role to be used by VBAWS
+    - IAM roles named "instance" that are created by attendees to simulate creation of instance profile roles to configure SSM and application-consistent snapshots
+    - IAM policies named "source", "vss", and "vpc" that are applied to the source and instance roles
+    - CloudFormation StackSet Execution role
   - Primary region
-   - Snapshots of the EBS volumes which were connected to the Windows instances
-   - The EC2 key pair named _vbaws-lab-prod-primary_
+    - Snapshots of the EBS volumes which were connected to the Windows instances
+    - The EC2 key pair named _vbaws-lab-prod-primary_
   - Secondary region
-   - Snapshots of the EBS volumes which were connected to the Ubuntu instances 
-   - The EC2 key pair named _vbaws-lab-prod-secondary_
+    - Snapshots of the EBS volumes which were connected to the Ubuntu instances 
+    - The EC2 key pair named _vbaws-lab-prod-secondary_
 
 ## MASS DEPLOYMENT
 If you are deploying this lab for a large group of users, I have written scripts to accomplish the deployment and teardown processes quickly and simply. They are found in the scripts directory in this repo.
