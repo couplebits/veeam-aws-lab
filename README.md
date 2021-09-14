@@ -94,7 +94,7 @@ The following resources will be created for each lab attendee:
     - (1) EC2 instance running Ubuntu 20.04
     - (1) Customer managed key (CMK) to encrypt the EBS volume attached to the Ubuntu instance
 
-## TEARDOWN - PART 1/2 - HOW TO DELETE THE LAB STACKS
+## TEARDOWN - PART 1/2 - HOW TO DELETE THE LAB
 1) Log into the AWS account being used as the backup account. 
 2) From the top right corner of the AWS management console, select the region that was used as the primary region for the lab from the dropdown.
 3) Using the Services menu top-left or the search field top-center, select CloudFormation.
@@ -165,7 +165,7 @@ bash ./deploy.sh
 ```
 The script will iterate through the list of attendees and deploy their resources into the accounts and regions specified, 8 users at a time. This limit has been implemented to avoid exceeding AWS rate limits and causing errors.
 
-## MASS TEARDOWN - HOW TO DELETE THE LAB STACKS
+## MASS TEARDOWN - HOW TO DELETE
 1) In the scripts directory, find the _teardown.sh_ script.
 2) Place the _teardown.sh_ script in the same directory as the _attendees.txt_ file.
 3) Use the _cd_ command to go to the directory where you placed the script.
