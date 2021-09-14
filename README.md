@@ -7,7 +7,7 @@ Created by Eric Ellenberg - Public Cloud Solutions, Veeam
 The lab is deployed using a CloudFormation template that will deploy lab resources into two regions within two AWS accounts. **The deployment will fail if you have not fulfilled the requirements.**
 
 * (2) AWS Accounts
-  - One account to serve as the backup account. This account is where Veeam Backup for AWS and associated resources will be deployed.
+  - One account to serve as the backup account. This account is where Veeam Backup for AWS instance and associated resources will be deployed.
   - One account to serve as the production account. This account is where the EC2 instances to be protected will be deployed.
   - Lab users must be given administrative access to both AWS accounts to perform various AWS configuration changes and tasks.
 
