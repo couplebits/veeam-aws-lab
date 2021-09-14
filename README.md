@@ -153,10 +153,10 @@ If you are deploying this lab for a large group of users, I have written scripts
 ### MASS DEPLOYMENT - HOW TO DEPLOY
 1) Open the _deploy.sh_ script in your text editor.
 2) Enter the values for the following deployment parameters next to the = sign:
-  - ProductionAccountId
-  - PrimaryRegionId - **the primary region ID must match the region ID where you are deploying the master template**
-  - SecondaryRegionId
-  - CmkPolicyRole
+   - ProductionAccountId
+   - PrimaryRegionId - **the primary region ID must match the region ID where you are deploying the master template**
+   - SecondaryRegionId
+   - CmkPolicyRole
 3) Place the _attendees.txt_ file and the _deploy.sh_ script in the same directory in the Linux box.
 4) Use the _cd_ command to go to the directory where you placed these files.
 5) At the command line, enter:
