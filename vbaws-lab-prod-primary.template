@@ -1,0 +1,319 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Veeam Backup for AWS Lab Setup - Production Primary Region",
+  "Parameters": {
+    "UserName": {
+      "Description": "First letter of first name, first four letters of last name, all lowercase. Example: Victor Flex -> vflex",
+      "Type": "String",
+      "MaxLength": 5,
+      "ConstraintDescription": "Username must be lowercase and cannot contain more than 5 characters."
+    }
+  },
+  "Mappings": {
+    "RegionMap": {
+      "us-east-1": {
+        "HVM64": "ami-029bfac3973c1bda1"
+      },
+      "us-east-2": {
+        "HVM64": "ami-0a727a421bd5a51a3"
+      },
+      "us-west-1": {
+        "HVM64": "ami-0f87a682fa9d0ff58"
+      },
+      "us-west-2": {
+        "HVM64": "ami-0e9172b6cfc14e8d2"
+      },
+      "ap-south-1": {
+        "HVM64": "ami-0300b3c1504b56ca4"
+      },
+      "ap-northeast-2": {
+        "HVM64": "ami-01dd8a88a17ff5466"
+      },
+      "ap-southeast-1": {
+        "HVM64": "ami-0a2232786115639d7"
+      },
+      "ap-southeast-2": {
+        "HVM64": "ami-045682e400656aabd"
+      },
+      "ap-northeast-1": {
+        "HVM64": "ami-0a2c187ea12f133eb"
+      },
+      "ca-central-1": {
+        "HVM64": "ami-07ad956aeb80a5a8e"
+      },
+      "eu-central-1": {
+        "HVM64": "ami-00bdbdac0da69a3b4"
+      },
+      "eu-west-1": {
+        "HVM64": "ami-0b0b2182e19d73648"
+      },
+      "eu-west-2": {
+        "HVM64": "ami-0f34584723e6f6fa9"
+      },
+      "eu-west-3": {
+        "HVM64": "ami-0727d9080f3d2b371"
+      },
+      "eu-north-1": {
+        "HVM64": "ami-083543b9fe72b95e5"
+      },
+      "sa-east-1": {
+        "HVM64": "ami-08b543cf3876d6acc"
+      },
+      "me-south-1": {
+        "HVM64": "ami-0a2998df612144b82"
+      },
+      "ap-east-1": {
+        "HVM64": "ami-07ab863361180ac7f"
+      }
+    }
+  },
+  "Resources": {
+    "ProdPrimaryVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.1.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-primary-vpc"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdPrimarySubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdPrimaryVPC"
+        },
+        "CidrBlock": "10.1.0.0/24",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-primary-subnet"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdPrimaryIGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-primary-igw"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdPrimaryAttachIGW": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdPrimaryVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "ProdPrimaryIGW"
+        }
+      }
+    },
+    "ProdPrimaryRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdPrimaryVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-primary-rt"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdPrimaryRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "ProdPrimaryAttachIGW",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "ProdPrimaryRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "ProdPrimaryIGW"
+        }
+      }
+    },
+    "ProdPrimarySubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "ProdPrimarySubnet"
+        },
+        "RouteTableId": {
+          "Ref": "ProdPrimaryRouteTable"
+        }
+      }
+    },
+    "ProdPrimarySG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdPrimaryVPC"
+        },
+        "GroupDescription": "Enable HTTPS access on TCP 443",
+        "GroupName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "UserName"
+              },
+              "prod-primary-sg"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-primary-sg"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdPrimaryEC2": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": "ProdPrimaryAttachIGW",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "HVM64"
+          ]
+        },
+        "InstanceType": "t2.small",
+        "KeyName": "vbaws-lab-prod-primary",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "ec2-primary-windows"
+                ]
+              ]
+            }
+          },
+          {
+            "Key": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "tag"
+                ]
+              ]
+            },
+            "Value": {
+              "Ref": "UserName"
+            }
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "GroupSet": [
+              {
+                "Ref": "ProdPrimarySG"
+              }
+            ],
+            "AssociatePublicIpAddress": true,
+            "DeviceIndex": "0",
+            "DeleteOnTermination": true,
+            "SubnetId": {
+              "Ref": "ProdPrimarySubnet"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "InstanceId": {
+      "Description": "InstanceId of the newly created EC2 instance",
+      "Value": {
+        "Ref": "ProdPrimaryEC2"
+      }
+    }
+  }
+}

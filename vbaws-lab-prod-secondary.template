@@ -1,0 +1,510 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Veeam Backup for AWS Lab Setup - Production Secondary Region",
+  "Parameters": {
+    "UserName": {
+      "Description": "First letter of first name, first four letters of last name, all lowercase. Example: Victor Flex -> vflex",
+      "Type": "String",
+      "MaxLength": 5,
+      "ConstraintDescription": "Username must be lowercase and cannot contain more than 5 characters."
+    },
+    "CmkPolicyRole": {
+      "Description": "Specify the name of the IAM role that will be given access to the key created for the lab.",
+      "Type": "String"
+    }
+  },
+  "Mappings": {
+    "RegionMap": {
+      "us-east-1": {
+        "HVM64": "ami-09e67e426f25ce0d7"
+      },
+      "us-east-2": {
+        "HVM64": "ami-00399ec92321828f5"
+      },
+      "us-west-1": {
+        "HVM64": "ami-0d382e80be7ffdae5"
+      },
+      "us-west-2": {
+        "HVM64": "ami-03d5c68bab01f3496"
+      },
+      "ap-south-1": {
+        "HVM64": "ami-0c1a7f89451184c8b"
+      },
+      "ap-northeast-2": {
+        "HVM64": "ami-04876f29fd3a5e8ba"
+      },
+      "ap-southeast-1": {
+        "HVM64": "ami-0d058fe428540cd89"
+      },
+      "ap-southeast-2": {
+        "HVM64": "ami-0567f647e75c7bc05"
+      },
+      "ap-northeast-1": {
+        "HVM64": "ami-0df99b3a8349462c6"
+      },
+      "ca-central-1": {
+        "HVM64": "ami-0801628222e2e96d6"
+      },
+      "eu-central-1": {
+        "HVM64": "ami-05f7491af5eef733a"
+      },
+      "eu-west-1": {
+        "HVM64": "ami-0a8e758f5e873d1c1"
+      },
+      "eu-west-2": {
+        "HVM64": "ami-0194c3e07668a7e36"
+      },
+      "eu-west-3": {
+        "HVM64": "ami-0f7cd40eac2214b37"
+      },
+      "eu-north-1": {
+        "HVM64": "ami-0ff338189efb7ed37"
+      },
+      "sa-east-1": {
+        "HVM64": "ami-054a31f1b3bf90920"
+      },
+      "me-south-1": {
+        "HVM64": "ami-0eddb8cfbd6a5f657"
+      },
+      "ap-east-1": {
+        "HVM64": "ami-0b215afe809665ae5"
+      }
+    }
+  },
+  "Resources": {
+    "ProdSecondaryVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.2.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-secondary-vpc"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdSecondarySubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdSecondaryVPC"
+        },
+        "CidrBlock": "10.2.0.0/24",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-secondary-subnet"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdSecondaryIGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-secondary-igw"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdSecondaryAttachIGW": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdSecondaryVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "ProdSecondaryIGW"
+        }
+      }
+    },
+    "ProdSecondaryRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdSecondaryVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-secondary-rt"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdSecondaryRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "ProdSecondaryAttachIGW",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "ProdSecondaryRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "ProdSecondaryIGW"
+        }
+      }
+    },
+    "ProdSecondarySubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "ProdSecondarySubnet"
+        },
+        "RouteTableId": {
+          "Ref": "ProdSecondaryRouteTable"
+        }
+      }
+    },
+    "ProdSecondarySG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdSecondaryVPC"
+        },
+        "GroupDescription": "Enable HTTPS access on TCP 443",
+        "GroupName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "UserName"
+              },
+              "prod-secondary-sg"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-secondary-sg"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdSecondaryKmsCmk": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "EnableKeyRotation": true,
+        "PendingWindowInDays": 7,
+        "KeyPolicy": {
+          "Id": "key-consolepolicy-3",
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Enable IAM User Permissions",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:iam::",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":root"
+                    ]
+                  ]
+                }
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            },
+            {
+              "Sid": "Allow access for Key Administrators",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:iam::",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":role/",
+                      {
+                        "Fn::Join": [
+                          "/",
+                          [
+                            {
+                              "Ref": "CmkPolicyRole"
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              },
+              "Action": [
+                "kms:Create*",
+                "kms:Describe*",
+                "kms:Enable*",
+                "kms:List*",
+                "kms:Put*",
+                "kms:Update*",
+                "kms:Revoke*",
+                "kms:Disable*",
+                "kms:Get*",
+                "kms:Delete*",
+                "kms:TagResource",
+                "kms:UntagResource",
+                "kms:ScheduleKeyDeletion",
+                "kms:CancelKeyDeletion"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "Allow use of the key",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:iam::",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":role/",
+                      {
+                        "Fn::Join": [
+                          "/",
+                          [
+                            {
+                              "Ref": "CmkPolicyRole"
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              },
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "Allow attachment of persistent resources",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:iam::",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":role/",
+                      {
+                        "Fn::Join": [
+                          "/",
+                          [
+                            {
+                              "Ref": "CmkPolicyRole"
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              },
+              "Action": [
+                "kms:CreateGrant",
+                "kms:ListGrants",
+                "kms:RevokeGrant"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "Bool": {
+                  "kms:GrantIsForAWSResource": true
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ProdSecondaryKmsCmkAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": {
+          "Fn::Join": [
+            "",
+            [
+              "alias/",
+              {
+                "Ref": "UserName"
+              },
+              "-cmk"
+            ]
+          ]
+        },
+        "TargetKeyId": {
+          "Ref": "ProdSecondaryKmsCmk"
+        }
+      }
+    },
+    "ProdSecondaryEC2": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": "ProdSecondaryAttachIGW",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "HVM64"
+          ]
+        },
+        "InstanceType": "t2.micro",
+        "KeyName": "vbaws-lab-prod-secondary",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "ec2-secondary-ubuntu"
+                ]
+              ]
+            }
+          },
+          {
+            "Key": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "tag"
+                ]
+              ]
+            },
+            "Value": {
+              "Ref": "UserName"
+            }
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "GroupSet": [
+              {
+                "Ref": "ProdSecondarySG"
+              }
+            ],
+            "AssociatePublicIpAddress": true,
+            "DeviceIndex": "0",
+            "DeleteOnTermination": true,
+            "SubnetId": {
+              "Ref": "ProdSecondarySubnet"
+            }
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeType": "gp2",
+              "VolumeSize": 10,
+              "DeleteOnTermination": true,
+              "Encrypted": true,
+              "KmsKeyId": {
+                "Ref": "ProdSecondaryKmsCmk"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "InstanceId": {
+      "Description": "InstanceId of the newly created EC2 instance",
+      "Value": {
+        "Ref": "ProdSecondaryEC2"
+      }
+    }
+  }
+}
