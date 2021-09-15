@@ -7,7 +7,7 @@ Created by Eric Ellenberg - Public Cloud Solutions, Veeam
 The lab is deployed using a CloudFormation template that will deploy lab resources into two regions within two AWS accounts. **The deployment will fail if you have not fulfilled the requirements.**
 
 * (2) AWS Accounts
-  - One account to serve as the backup account. This account is where Veeam Backup for AWS instance and associated resources will be deployed.
+  - One account to serve as the backup account. This account is where the Veeam Backup for AWS EC2 instance and associated resources will be deployed.
   - One account to serve as the production account. This account is where the EC2 instances to be protected will be deployed.
   - Lab users must be given administrative access to both AWS accounts to perform various AWS configuration changes and tasks.
 
@@ -122,8 +122,8 @@ The following resources must be manually removed after all CloudFormation stacks
     - Lambda function log groups in CloudWatch
   - Secondary region
     - Lambda function log groups in CloudWatch
-  - Extra credit / prize region 
-    - VPCs which are restored to the region used for the extra credit / prize portion of the lab to simulate restores of VPCs using VBAWS
+  - (Optional) Extra credit / prize region 
+    - VPCs which were restored to the region used for the extra credit / prize portion of the lab to simulate restores of VPCs using VBAWS
 
 * Production account
   - Global 
@@ -144,14 +144,14 @@ If you are deploying this lab for a large group of users, I have written scripts
 ### REQUIREMENTS - MASS DEPLOYMENT
 - An IAM user with programmatic access enabled.
   - You will need an access and secret key to configure the AWS CLI to access the AWS account that will serve as your backup account.
-- Access to a bash shell on Linux (can be a VM or WSL distro - this script was tested with Ubuntu 20.04)
+- Access to a bash shell on Linux (can be a VM or WSL distro - scripts were tested on Ubuntu 20.04)
 - Install the AWS CLI v2 - https://github.com/aws/aws-cli/tree/v2
 - A text file named _attendees.txt_ with a list of all lab attendee names formatted in 5 characters or less.
   - Only lowercase letters and the numbers 0-9 are allowed.
   - **If you create the file in Windows:** The deploy script expects standard UNIX line breaks (LF). Ensure that your text editor of choice saves the text file with LF line breaks. VS Code can do this easily.
 
 ### MASS DEPLOYMENT - HOW TO DEPLOY
-1) Open the _deploy.sh_ script in your text editor.
+1) In the scripts directory, open the _deploy.sh_ script in your text editor.
 2) Enter the values for the following deployment parameters next to the = sign:
    - ProductionAccountId
    - PrimaryRegionId - **the primary region ID must match the region ID where you are deploying the master template**
@@ -173,7 +173,6 @@ The script will iterate through the list of attendees and deploy their resources
 ```
 bash ./teardown.sh
 ```
-
 The script will iterate through the list of attendees and delete their resources, 8 users at a time. This limit has been implemented to avoid exceeding AWS rate limits and causing errors.
 
 ### NOTES ON MASS DEPLOYMENT
