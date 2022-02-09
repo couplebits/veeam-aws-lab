@@ -3,7 +3,7 @@
   "Description": "Veeam Backup for AWS Lab Setup - Production Secondary Region",
   "Parameters": {
     "UserName": {
-      "Description": "First letter of first name, first four letters of last name, all lowercase. Example: Victor Flex -> vflex",
+      "Description": "First letter of first name, first four letters of last name, all lowercase. Five letters total. Example: Victor Flex -> vflex, or Woo Hoo -> wohoo",
       "Type": "String",
       "MaxLength": 5,
       "ConstraintDescription": "Username must be lowercase and cannot contain more than 5 characters."
@@ -11,64 +11,10 @@
     "CmkPolicyRole": {
       "Description": "Specify the name of the IAM role that will be given access to the key created for the lab.",
       "Type": "String"
-    }
-  },
-  "Mappings": {
-    "RegionMap": {
-      "us-east-1": {
-        "HVM64": "ami-09e67e426f25ce0d7"
-      },
-      "us-east-2": {
-        "HVM64": "ami-00399ec92321828f5"
-      },
-      "us-west-1": {
-        "HVM64": "ami-0d382e80be7ffdae5"
-      },
-      "us-west-2": {
-        "HVM64": "ami-03d5c68bab01f3496"
-      },
-      "ap-south-1": {
-        "HVM64": "ami-0c1a7f89451184c8b"
-      },
-      "ap-northeast-2": {
-        "HVM64": "ami-04876f29fd3a5e8ba"
-      },
-      "ap-southeast-1": {
-        "HVM64": "ami-0d058fe428540cd89"
-      },
-      "ap-southeast-2": {
-        "HVM64": "ami-0567f647e75c7bc05"
-      },
-      "ap-northeast-1": {
-        "HVM64": "ami-0df99b3a8349462c6"
-      },
-      "ca-central-1": {
-        "HVM64": "ami-0801628222e2e96d6"
-      },
-      "eu-central-1": {
-        "HVM64": "ami-05f7491af5eef733a"
-      },
-      "eu-west-1": {
-        "HVM64": "ami-0a8e758f5e873d1c1"
-      },
-      "eu-west-2": {
-        "HVM64": "ami-0194c3e07668a7e36"
-      },
-      "eu-west-3": {
-        "HVM64": "ami-0f7cd40eac2214b37"
-      },
-      "eu-north-1": {
-        "HVM64": "ami-0ff338189efb7ed37"
-      },
-      "sa-east-1": {
-        "HVM64": "ami-054a31f1b3bf90920"
-      },
-      "me-south-1": {
-        "HVM64": "ami-0eddb8cfbd6a5f657"
-      },
-      "ap-east-1": {
-        "HVM64": "ami-0b215afe809665ae5"
-      }
+    },
+    "LatestUbuntuFocalAmi": {
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/canonical/ubuntu/server/focal/stable/current/amd64/hvm/ebs-gp2/ami-id"
     }
   },
   "Resources": {
@@ -253,7 +199,7 @@
         "EnableKeyRotation": true,
         "PendingWindowInDays": 7,
         "KeyPolicy": {
-          "Id": "key-consolepolicy-3",
+          "Id": "veeam-aws-lab",
           "Version": "2012-10-17",
           "Statement": [
             {
@@ -425,15 +371,9 @@
       "DependsOn": "ProdSecondaryAttachIGW",
       "Properties": {
         "ImageId": {
-          "Fn::FindInMap": [
-            "RegionMap",
-            {
-              "Ref": "AWS::Region"
-            },
-            "HVM64"
-          ]
+          "Ref": "LatestUbuntuFocalAmi"
         },
-        "InstanceType": "t2.micro",
+        "InstanceType": "t3.micro",
         "KeyName": "vbaws-lab-prod-secondary",
         "Tags": [
           {
@@ -486,7 +426,7 @@
           {
             "DeviceName": "/dev/sda1",
             "Ebs": {
-              "VolumeType": "gp2",
+              "VolumeType": "gp3",
               "VolumeSize": 10,
               "DeleteOnTermination": true,
               "Encrypted": true,

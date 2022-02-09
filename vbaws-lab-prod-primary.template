@@ -3,68 +3,14 @@
   "Description": "Veeam Backup for AWS Lab Setup - Production Primary Region",
   "Parameters": {
     "UserName": {
-      "Description": "First letter of first name, first four letters of last name, all lowercase. Example: Victor Flex -> vflex",
+      "Description": "First letter of first name, first four letters of last name, all lowercase. Five letters total. Example: Victor Flex -> vflex, or Woo Hoo -> wohoo",
       "Type": "String",
       "MaxLength": 5,
       "ConstraintDescription": "Username must be lowercase and cannot contain more than 5 characters."
-    }
-  },
-  "Mappings": {
-    "RegionMap": {
-      "us-east-1": {
-        "HVM64": "ami-029bfac3973c1bda1"
-      },
-      "us-east-2": {
-        "HVM64": "ami-0a727a421bd5a51a3"
-      },
-      "us-west-1": {
-        "HVM64": "ami-0f87a682fa9d0ff58"
-      },
-      "us-west-2": {
-        "HVM64": "ami-0e9172b6cfc14e8d2"
-      },
-      "ap-south-1": {
-        "HVM64": "ami-0300b3c1504b56ca4"
-      },
-      "ap-northeast-2": {
-        "HVM64": "ami-01dd8a88a17ff5466"
-      },
-      "ap-southeast-1": {
-        "HVM64": "ami-0a2232786115639d7"
-      },
-      "ap-southeast-2": {
-        "HVM64": "ami-045682e400656aabd"
-      },
-      "ap-northeast-1": {
-        "HVM64": "ami-0a2c187ea12f133eb"
-      },
-      "ca-central-1": {
-        "HVM64": "ami-07ad956aeb80a5a8e"
-      },
-      "eu-central-1": {
-        "HVM64": "ami-00bdbdac0da69a3b4"
-      },
-      "eu-west-1": {
-        "HVM64": "ami-0b0b2182e19d73648"
-      },
-      "eu-west-2": {
-        "HVM64": "ami-0f34584723e6f6fa9"
-      },
-      "eu-west-3": {
-        "HVM64": "ami-0727d9080f3d2b371"
-      },
-      "eu-north-1": {
-        "HVM64": "ami-083543b9fe72b95e5"
-      },
-      "sa-east-1": {
-        "HVM64": "ami-08b543cf3876d6acc"
-      },
-      "me-south-1": {
-        "HVM64": "ami-0a2998df612144b82"
-      },
-      "ap-east-1": {
-        "HVM64": "ami-07ab863361180ac7f"
-      }
+    },
+    "LatestWindowsServer2019Ami": {
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/ami-windows-latest/Windows_Server-2019-English-Full-Base"
     }
   },
   "Resources": {
@@ -248,15 +194,9 @@
       "DependsOn": "ProdPrimaryAttachIGW",
       "Properties": {
         "ImageId": {
-          "Fn::FindInMap": [
-            "RegionMap",
-            {
-              "Ref": "AWS::Region"
-            },
-            "HVM64"
-          ]
+              "Ref": "LatestWindowsServer2019Ami"
         },
-        "InstanceType": "t2.small",
+        "InstanceType": "t3.small",
         "KeyName": "vbaws-lab-prod-primary",
         "Tags": [
           {
@@ -302,6 +242,16 @@
             "DeleteOnTermination": true,
             "SubnetId": {
               "Ref": "ProdPrimarySubnet"
+            }
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeType": "gp3",
+              "VolumeSize": 30,
+              "DeleteOnTermination": true
             }
           }
         ]

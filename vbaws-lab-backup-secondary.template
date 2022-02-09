@@ -3,7 +3,7 @@
   "Description": "Veeam Backup for AWS Lab Setup - Backup Secondary Region",
   "Parameters": {
     "UserName": {
-      "Description": "First letter of first name, first four letters of last name, all lowercase. Example: Victor Flex -> vflex",
+      "Description": "First letter of first name, first four letters of last name, all lowercase. Five letters total. Example: Victor Flex -> vflex, or Woo Hoo -> wohoo",
       "Type": "String",
       "MaxLength": 5,
       "ConstraintDescription": "Username must be lowercase and cannot contain more than 5 characters."
