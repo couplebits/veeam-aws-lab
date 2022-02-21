@@ -1,7 +1,7 @@
 # Veeam Backup for AWS Lab
-Cloudformation templates for deploying Veeam Backup for AWS lab into two accounts and regions and bash scripts for mass deployments and clean-up.
+CloudFormation templates for deploying Veeam Backup for AWS lab into two accounts and regions and bash scripts for mass deployments.
 
-Created by Eric Ellenberg - Public Cloud Solutions, Veeam
+Created by Eric Ellenberg - Sr Systems Engineer, Public Cloud Solutions, Veeam
 
 ## REQUIREMENTS
 The lab is deployed using a CloudFormation template that will deploy lab resources into two regions within two AWS accounts. **The deployment will fail if you have not fulfilled the requirements.**
@@ -24,9 +24,9 @@ The lab is deployed using a CloudFormation template that will deploy lab resourc
   - (1) IAM role that allows users to manage the CMKs that will be created in the secondary region and used to encrypt the EBS volume attached to their instance. 
 
 ### IMPORTANT
-The StackSet Execution role is deployed with the AWS-managed Administrator IAM policy attached, giving the role full administrative access to all actions and resources within the account. To prevent unauthorized administrative access, edit the trust relationship on the CloudFormation StackSet Execution role in both AWS accounts to allow only the Administration role in the backup account to assume it. 
+The StackSet Execution role is deployed with the AWS-managed Administrator IAM policy attached, giving the role full administrative access to all actions and resources within the account. To prevent unauthorized administrative access, edit the trust relationship on the Execution role in both AWS accounts to allow only the Administration role in the backup account to assume it. 
  
-The trust policy on the StackSet Execution role should appear similar to the following example. The 12-digit AWS account ID in the following example, 123456789012, should be replaced with the account ID of the backup account where the Administration role is deployed.
+The trust policy on the Execution role should appear similar to the following example. The 12-digit AWS account ID in the following example, 123456789012, should be replaced with the account ID of the backup account where the Administration role is deployed.
 
 ```json
 {
@@ -65,9 +65,7 @@ For more details on CloudFormation StackSet roles and self-managed permissions, 
 
 The user's lab resources will be deployed into both AWS accounts and both regions within the two accounts. This usually takes 4-5 minutes.
 
-## DEPLOYMENT - LIST OF RESOURCES
-The following resources will be created for each lab attendee:
-
+## LIST OF RESOURCES
 * Backup account
   - Global
     - (3) IAM roles required by Veeam Backup for AWS
@@ -94,7 +92,7 @@ The following resources will be created for each lab attendee:
     - (1) EC2 instance running Ubuntu 20.04
     - (1) Customer managed key (CMK) to encrypt the EBS volume attached to the Ubuntu instance
 
-## TEARDOWN - PART 1/2 - HOW TO DELETE THE LAB
+## TEARDOWN - PART 1/2 - CLOUDFORMATION
 1) Log into the AWS account being used as the backup account. 
 2) From the top right corner of the AWS management console, select the region that was used as the primary region for the lab from the dropdown.
 3) Using the Services menu top-left or the search field top-center, select CloudFormation.
@@ -123,7 +121,7 @@ The following resources must be manually removed after all CloudFormation stacks
   - Secondary region
     - Lambda function log groups in CloudWatch
   - (Optional) Extra credit / prize region 
-    - VPCs which were restored to the region used for the extra credit / prize portion of the lab to simulate restores of VPCs using VBAWS
+    - VPCs which were restored to the region used for the extra credit portion of the lab to simulate restores of VPCs using VBAWS
 
 * Production account
   - Global 
@@ -141,34 +139,32 @@ The following resources must be manually removed after all CloudFormation stacks
 ## MASS DEPLOYMENT
 If you are deploying this lab for a large group of users, I have written scripts to accomplish the deployment and teardown processes quickly and simply. They are found in the scripts directory in this repo.
 
-### REQUIREMENTS - MASS DEPLOYMENT
+## REQUIREMENTS
 - An IAM user with programmatic access enabled.
   - You will need an access and secret key to configure the AWS CLI to access the AWS account that will serve as your backup account.
-- Access to a bash shell on Linux (can be a VM or WSL distro - scripts were tested on Ubuntu 20.04)
+- Bash - scripts were tested on Ubuntu 20.04
 - Install the AWS CLI v2 - https://github.com/aws/aws-cli/tree/v2
 - A text file named _attendees.txt_ with a list of all lab attendee names formatted in 5 characters or less.
   - Only lowercase letters and the numbers 0-9 are allowed.
-  - **If you create the file in Windows:** The deploy script expects standard UNIX line breaks (LF). Ensure that your text editor of choice saves the text file with LF line breaks. VS Code can do this easily.
+  - **If you create the file in Windows:** The deploy script expects standard UNIX line breaks (LF). Ensure that your text editor of choice saves the text file with LF line breaks.
 
-### MASS DEPLOYMENT - HOW TO DEPLOY
+## HOW TO DEPLOY
 1) In the scripts directory, open the _deploy.sh_ script in your text editor.
-2) Enter the values for the following deployment parameters next to the = sign:
+2) Enter the values for the following deployment parameters:
    - ProductionAccountId
    - PrimaryRegionId - **the primary region ID must match the region ID where you are deploying the master template**
    - SecondaryRegionId
    - CmkPolicyRole
-3) Place the _attendees.txt_ file and the _deploy.sh_ script in the same directory in the Linux box.
-4) Use the _cd_ command to go to the directory where you placed these files.
-5) At the command line, enter:
+3) Place the _attendees.txt_ file and the _deploy.sh_ script in the same directory.
+4) At the command line, enter:
 ```
 bash ./deploy.sh
 ```
 The script will iterate through the list of attendees and deploy their resources into the accounts and regions specified, 8 users at a time. This limit has been implemented to avoid exceeding AWS rate limits and causing errors.
 
-## MASS TEARDOWN - HOW TO DELETE
+## HOW TO DELETE
 1) In the scripts directory, find the _teardown.sh_ script.
 2) Place the _teardown.sh_ script in the same directory as the _attendees.txt_ file.
-3) Use the _cd_ command to go to the directory where you placed the script.
 3) At the command line, enter:
 ```
 bash ./teardown.sh
@@ -176,5 +172,5 @@ bash ./teardown.sh
 The script will iterate through the list of attendees and delete their resources, 8 users at a time. This limit has been implemented to avoid exceeding AWS rate limits and causing errors.
 
 ### NOTES ON MASS DEPLOYMENT
-- Be mindful of AWS service quotas. In particular, the default VPC quota is limited to (5) VPCs per region. Quotas must be increased in both regions within both accounts, four regions total.
+- Be mindful of AWS service quotas. In particular, the default VPC quota is limited to (5) VPCs per region. Quotas must be increased in both regions within both accounts.
 - In the backup account primary region, the AWS service quota for _Stack sets per administrator account_ may need to be increased, as each user's deployment includes 3 stack sets.
