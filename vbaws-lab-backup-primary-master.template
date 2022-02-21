@@ -1162,7 +1162,7 @@
             "HVM64"
           ]
         },
-        "InstanceType": "t3.medium",
+        "InstanceType": "t2.medium",
         "IamInstanceProfile": {
           "Ref": "VcbInstanceProfile"
         },
