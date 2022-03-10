@@ -1,0 +1,269 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Veeam Backup for AWS Lab Setup - Production Secondary Region",
+  "Parameters": {
+    "UserName": {
+      "Description": "First letter of first name, first four letters of last name, all lowercase. Five letters total. Example: Victor Flex -> vflex, or Woo Hoo -> wohoo",
+      "Type": "String",
+      "MaxLength": 5,
+      "ConstraintDescription": "Username must be lowercase and cannot contain more than 5 characters."
+    },
+    "LatestUbuntuFocalAmi": {
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/canonical/ubuntu/server/focal/stable/current/amd64/hvm/ebs-gp2/ami-id"
+    }
+  },
+  "Resources": {
+    "ProdSecondaryVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.2.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-secondary-vpc"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdSecondarySubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdSecondaryVPC"
+        },
+        "CidrBlock": "10.2.0.0/24",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-secondary-subnet"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdSecondaryIGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-secondary-igw"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdSecondaryAttachIGW": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdSecondaryVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "ProdSecondaryIGW"
+        }
+      }
+    },
+    "ProdSecondaryRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdSecondaryVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-secondary-rt"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdSecondaryRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "ProdSecondaryAttachIGW",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "ProdSecondaryRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "ProdSecondaryIGW"
+        }
+      }
+    },
+    "ProdSecondarySubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "ProdSecondarySubnet"
+        },
+        "RouteTableId": {
+          "Ref": "ProdSecondaryRouteTable"
+        }
+      }
+    },
+    "ProdSecondarySG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdSecondaryVPC"
+        },
+        "GroupDescription": "Enable HTTPS access on TCP 443",
+        "GroupName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "UserName"
+              },
+              "prod-secondary-sg"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "prod-secondary-sg"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ProdSecondaryEC2": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": "ProdSecondaryAttachIGW",
+      "Properties": {
+        "ImageId": {
+          "Ref": "LatestUbuntuFocalAmi"
+        },
+        "InstanceType": "t3.micro",
+        "KeyName": "vbaws-lab-prod-secondary",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "ec2-secondary-ubuntu"
+                ]
+              ]
+            }
+          },
+          {
+            "Key": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "tag"
+                ]
+              ]
+            },
+            "Value": {
+              "Ref": "UserName"
+            }
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "GroupSet": [
+              {
+                "Ref": "ProdSecondarySG"
+              }
+            ],
+            "AssociatePublicIpAddress": true,
+            "DeviceIndex": "0",
+            "DeleteOnTermination": true,
+            "SubnetId": {
+              "Ref": "ProdSecondarySubnet"
+            }
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeType": "gp3",
+              "VolumeSize": 10,
+              "DeleteOnTermination": true
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "InstanceId": {
+      "Description": "InstanceId of the newly created EC2 instance",
+      "Value": {
+        "Ref": "ProdSecondaryEC2"
+      }
+    }
+  }
+}
