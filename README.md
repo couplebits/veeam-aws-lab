@@ -113,9 +113,7 @@ The following resources must be manually removed after all CloudFormation stacks
   - Global 
     - CloudFormation Administration and Execution roles
     - (Optional) IAM user with programmatic access - if you performed mass deployments using the AWS CLI
-  - Primary region 
-    - EBS volumes (20 GB) which were attached to Veeam Backup for AWS instances
-    - Snapshots of VBAWS instances created by data lifecycle manager policies
+  - Primary region
     - The EC2 key pair named "vbaws-lab-backup-primary"
     - Lambda function log groups in CloudWatch
   - Secondary region
