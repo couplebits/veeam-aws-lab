@@ -196,7 +196,7 @@
         "ImageId": {
               "Ref": "LatestWindowsServer2019Ami"
         },
-        "InstanceType": "t3.small",
+        "InstanceType": "t2.small",
         "KeyName": "vbaws-lab-prod-primary",
         "Tags": [
           {
