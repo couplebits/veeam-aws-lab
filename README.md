@@ -14,6 +14,7 @@ The lab is deployed using a CloudFormation template that will deploy lab resourc
   * Lab users must be given administrative access to both AWS accounts to perform various AWS configuration changes and tasks.
 
 * Within the backup account:
+  * An active subscription to the Veeam Backup for AWS Free Edition from the AWS Marketplace.
   * The CloudFormation StackSet Administration role (template provided by AWS): <https://s3.amazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetAdministrationRole.yml>
   * The CloudFormation StackSet Execution role (template provided by AWS): <https://s3.amazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetExecutionRole.yml>
   * (1) EC2 key pair in the primary region, named exactly as follows: _vbaws-lab-backup-primary_
