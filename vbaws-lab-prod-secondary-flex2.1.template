@@ -196,7 +196,7 @@
         "ImageId": {
           "Ref": "LatestUbuntuFocalAmi"
         },
-        "InstanceType": "t3.micro",
+        "InstanceType": "t2.micro",
         "KeyName": "vbaws-lab-prod-secondary",
         "Tags": [
           {

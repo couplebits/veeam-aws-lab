@@ -14,7 +14,6 @@ The lab is deployed using a CloudFormation template that will deploy lab resourc
   * Lab users must be given administrative access to both AWS accounts to perform various AWS configuration changes and tasks.
 
 * Within the backup account:
-  * An active subscription to the Veeam Backup for AWS Free Edition from the AWS Marketplace.
   * The CloudFormation StackSet Administration role (template provided by AWS): <https://s3.amazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetAdministrationRole.yml>
   * The CloudFormation StackSet Execution role (template provided by AWS): <https://s3.amazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetExecutionRole.yml>
   * (1) EC2 key pair in the primary region, named exactly as follows: _vbaws-lab-backup-primary_
@@ -61,7 +60,7 @@ For more details on CloudFormation StackSet roles and self-managed permissions, 
 9) In the Username field, enter the user's name code (5 characters maximum). Example: _veeam_
 10) In the Production Account field, enter the 12-digit AWS account ID of the account which will serve as the production account.
 11) In the Regions fields, enter the region IDs of the two regions which will be used for the lab. The primary region ID should match your current region ID where you are deploying the template.
-12) In the CMK Policy Role field, enter the name of the IAM role in the production account that will be given access to the CMK created for the lab.
+12) In the CMK Policy Role field, enter the name of the IAM role (just the name, not the ARN) in the production account that will be given access to the CMK created for the lab.
 13) Click Next.
 14) Everything on the Configure stack options page can be left at the default values. Click Next.
 15) Scroll to the bottom of the page and tick the checkbox to acknowledge creation of IAM resources.
