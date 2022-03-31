@@ -218,6 +218,7 @@
           "Ref": "BackupPrimaryVPC"
         },
         "CidrBlock": "10.10.0.0/24",
+        "AvailabilityZone": "us-east-1c",
         "MapPublicIpOnLaunch": true,
         "Tags": [
           {
@@ -1125,7 +1126,7 @@
             ]
           }
         ],
-        "TemplateURL": "https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/vbaws-lab-backup-secondary.template"
+        "TemplateURL": "https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/vbaws-lab-backup-secondary-flex2.1.template"
       }
     },
     "ProdPrimaryRegion": {
@@ -1167,7 +1168,7 @@
             ]
           }
         ],
-        "TemplateURL": "https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/vbaws-lab-prod-primary.template"
+        "TemplateURL": "https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/vbaws-lab-prod-primary-flex2.1.template"
       }
     },
     "ProdSecondaryRegion": {
