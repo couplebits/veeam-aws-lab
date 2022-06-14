@@ -52,7 +52,7 @@
           "default": "Secondary region where lab resources will be deployed"
         },
         "CmkPolicyRole": {
-          "default": "The name of the IAM role that will be given access to the key created for the lab"
+          "default": "The name of the IAM role that will be given access to the KMS key created for the lab"
         }
       }
     }
@@ -123,7 +123,7 @@
       "ConstraintDescription": "The region specified is not supported or is invalid."
     },
     "CmkPolicyRole": {
-      "Description": "Specify the name of the IAM role that will be given access to the key created for the lab.",
+      "Description": "Specify the name of the IAM role that will be given access to the KMS key created for the lab.",
       "Type": "String"
     }
   },
@@ -205,8 +205,8 @@
       "Type": "AWS::EC2::VPC",
       "Properties": {
         "CidrBlock": "10.10.0.0/16",
-        "EnableDnsHostnames": true,
-        "EnableDnsSupport": true,
+        "EnableDnsHostnames": false,
+        "EnableDnsSupport": false,
         "InstanceTenancy": "default",
         "Tags": [
           {
@@ -354,7 +354,7 @@
         "VpcId": {
           "Ref": "BackupPrimaryVPC"
         },
-        "GroupDescription": "Enable HTTPS access on TCP 443",
+        "GroupDescription": "Allow HTTPS / TCP 443",
         "GroupName": {
           "Fn::Join": [
             "-",
@@ -362,7 +362,7 @@
               {
                 "Ref": "UserName"
               },
-              "backup-veeam-sg"
+              "backup-sg"
             ]
           ]
         },
@@ -371,7 +371,7 @@
             "IpProtocol": "tcp",
             "FromPort": 443,
             "ToPort": 443,
-            "CidrIp": "0.0.0.0/0"
+            "CidrIp": "10.10.0.0/16"
           }
         ],
         "Tags": [
@@ -384,7 +384,7 @@
                   {
                     "Ref": "UserName"
                   },
-                  "backup-veeam-sg"
+                  "backup-sgrule"
                 ]
               ]
             }
@@ -444,7 +444,7 @@
             "Arn"
           ]
         },
-        "Runtime": "python3.7",
+        "Runtime": "python3.9",
         "Timeout": 300
       }
     },
