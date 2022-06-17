@@ -71,6 +71,7 @@
             }
           ]
         },
+        "AvailabilityZone": "us-east-1a",
         "MapPublicIpOnLaunch": true,
         "Tags": [
           {
@@ -168,6 +169,7 @@
             }
           ]
         },
+        "AvailabilityZone": "us-east-1a",
         "MapPublicIpOnLaunch": false,
         "Tags": [
           {
