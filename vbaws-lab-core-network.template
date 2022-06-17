@@ -319,6 +319,17 @@
           "Fn::Sub": "${AWS::StackName}-TransitGatewayRouteTableId"
         }
       }
+    },
+    "CorePublicSubnetRouteTableId": {
+      "Description": "ID of the core network public subnet route table created by the stack.",
+      "Value": {
+        "Ref": "CorePublicSubnetRouteTable"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-CorePublicSubnetRouteTableId"
+        }
+      }
     }
   }
 }

@@ -56,7 +56,7 @@
           "Label": {
             "default": "Windows AMI"
           },
-          "Parameters":[
+          "Parameters": [
             "LatestWindowsServer2022Ami"
           ]
         }
@@ -66,13 +66,13 @@
           "default": "Username for this lab"
         },
         "ProductionAccountId": {
-          "default": "AWS account where instances to be protected will be deployed"
+          "default": "AWS account where instances will be deployed to test cross-account operations"
         },
         "RegionId": {
           "default": "AWS Region where lab resources will be deployed"
         },
         "VpcCidr": {
-          "default": "CIDR block for the attendee's VPC"
+          "default": "CIDR block for the lab VPC"
         },
         "NetworkStackName": {
           "default": "Name of the core network stack for the lab"
@@ -102,7 +102,7 @@
       "ConstraintDescription": "AWS account IDs have 12 digits. Check the account ID number."
     },
     "RegionId": {
-      "Description": "Region ID. Example: us-east-1",
+      "Description": "Example: us-east-1",
       "Type": "String",
       "AllowedValues": [
         "us-east-1",
@@ -128,7 +128,7 @@
     },
     "VpcCidr": {
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
-      "Description": "Specify an IPv4 CIDR. This CIDR must not overlap with the network stack's CIDR. Example: 10.1.0.0/16.",
+      "Description": "Specify an IPv4 CIDR. This CIDR must not overlap with the core network stack's CIDR. Example: 10.1.0.0/16.",
       "Type": "String"
     },
     "NetworkStackName": {
@@ -358,6 +358,27 @@
         "DestinationCidrBlock": "0.0.0.0/0",
         "GatewayId": {
           "Ref": "BackupIGW"
+        }
+      }
+    },
+    "BackupCorePublicRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${NetworkStackName}-CorePublicSubnetRouteTableId"
+          }
+        },
+        "DestinationCidrBlock": {
+          "Fn::GetAtt":[
+            "BackupVPC",
+            "CidrBlock"
+          ]
+        },
+        "TransitGatewayId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${NetworkStackName}-TransitGatewayId"
+          }
         }
       }
     },
