@@ -304,6 +304,7 @@
             }
           ]
         },
+        "AvailabilityZone": "us-east-1a",
         "MapPublicIpOnLaunch": true,
         "Tags": [
           {
@@ -394,6 +395,7 @@
             }
           ]
         },
+        "AvailabilityZone": "us-east-1a",
         "MapPublicIpOnLaunch": false,
         "Tags": [
           {
@@ -468,6 +470,32 @@
         },
         "VpcId": {
           "Ref": "BackupVPC"
+        }
+      }
+    },
+    "BackupPrivateSubnetTransitGatewayRouteTableAssociation": {
+      "Type": "AWS::EC2::TransitGatewayRouteTableAssociation",
+      "Properties": {
+        "TransitGatewayAttachmentId": {
+          "Ref": "BackupPrivateSubnetTransitGatewayAttachment"
+        },
+        "TransitGatewayRouteTableId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${NetworkStackName}-TransitGatewayRouteTableId"
+          }
+        }
+      }
+    },
+    "BackupPrivateSubnetTransitGatewayRouteTablePropagation": {
+      "Type": "AWS::EC2::TransitGatewayRouteTablePropagation",
+      "Properties": {
+        "TransitGatewayAttachmentId": {
+          "Ref": "BackupPrivateSubnetTransitGatewayAttachment"
+        },
+        "TransitGatewayRouteTableId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${NetworkStackName}-TransitGatewayRouteTableId"
+          }
         }
       }
     },

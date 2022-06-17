@@ -1,274 +1,324 @@
 {
-    "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Veeam Backup for AWS Lab Setup - Backup Account - Core Network",
-    "Parameters": {
-      "VpcCidr": {
-        "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
-        "Description": "Specify an IPv4 CIDR. This CIDR must not overlap with the lab attendee's CIDR. Example: 10.0.0.0/16.",
-        "Type": "String"
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Veeam Backup for AWS Lab Setup - Backup Account - Core Network",
+  "Parameters": {
+    "VpcCidr": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "Description": "Specify an IPv4 CIDR. This CIDR must not overlap with the lab attendee's CIDR. Example: 10.0.0.0/16.",
+      "Type": "String"
     }
-    },
-    "Resources": {
-      "CoreVPC": {
-        "Type": "AWS::EC2::VPC",
-        "Properties": {
-          "CidrBlock": { 
-            "Ref": "VpcCidr"
-          },
-          "EnableDnsHostnames": true,
-          "EnableDnsSupport": true,
-          "InstanceTenancy": "default",
-          "Tags": [
-            {
-              "Key": "Name",
-              "Value": "core-vpc"
-            }
-          ]
-        }
-      },
-      "CoreIGW": {
-        "Type": "AWS::EC2::InternetGateway",
-        "Properties": {
-          "Tags": [
-            {
-              "Key": "Name",
-              "Value": "core-igw"
-            }
-                ]
+  },
+  "Resources": {
+    "CoreVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "VpcCidr"
+        },
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-vpc"
+          }
+        ]
       }
     },
-      "CoreAttachIGW": {
-        "Type": "AWS::EC2::VPCGatewayAttachment",
-        "Properties": {
-          "VpcId": {
-            "Ref": "CoreVPC"
-          },
-          "InternetGatewayId": {
-            "Ref": "CoreIGW"
+    "CoreIGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-igw"
           }
+        ]
+      }
+    },
+    "CoreAttachIGW": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "CoreVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "CoreIGW"
         }
-      },
-      "CorePublicSubnet": {
-        "Type": "AWS::EC2::Subnet",
-        "Properties": {
-          "VpcId": {
-            "Ref": "CoreVPC"
-          },
-          "CidrBlock": {
-            "Fn::Select": [
-              0,
-              {
-                "Fn::Cidr": [
-                  {
-                    "Fn::GetAtt": [
-                      "CoreVPC", "CidrBlock"
-                    ]
-                  },
-                  2,
-                  8
-                ]
-              }
-            ]
-          },
-          "MapPublicIpOnLaunch": true,
-          "Tags": [
+      }
+    },
+    "CorePublicSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "CoreVPC"
+        },
+        "CidrBlock": {
+          "Fn::Select": [
+            0,
             {
-              "Key": "Name",
-              "Value": "core-public-subnet"
-            }
-          ]
-        }
-      },
-      "CorePublicRouteTable": {
-        "Type": "AWS::EC2::RouteTable",
-        "Properties": {
-          "VpcId": {
-            "Ref": "CoreVPC"
-          },
-          "Tags": [
-            {
-              "Key": "Name",
-              "Value": "core-public-rt"
-            }
-          ]
-        }
-      },
-      "CorePublicRoute": {
-        "Type": "AWS::EC2::Route",
-        "DependsOn": "CoreAttachIGW",
-        "Properties": {
-          "RouteTableId": {
-            "Ref": "CorePublicRouteTable"
-          },
-          "DestinationCidrBlock": "0.0.0.0/0",
-          "GatewayId": {
-            "Ref": "CoreIGW"
-          }
-        }
-      },
-      "CorePublicRouteTableAssociation": {
-        "Type": "AWS::EC2::SubnetRouteTableAssociation",
-        "Properties": {
-          "SubnetId": {
-            "Ref": "CorePublicSubnet"
-          },
-          "RouteTableId": {
-            "Ref": "CorePublicRouteTable"
-          }
-        }
-      },
-      "CoreNatGateway" : {
-        "Type" : "AWS::EC2::NatGateway",
-        "Properties" : {
-           "AllocationId" : { "Fn::GetAtt" : ["CoreNatElasticIp", "AllocationId"]},
-           "SubnetId" : { "Ref" : "CorePublicSubnet"},
-           "Tags" : [ {"Key" : "Name", "Value" : "core-nat" } ]
-          }
-     },
-     "CoreNatElasticIp" : {
-        "DependsOn" : "CoreAttachIGW",
-        "Type" : "AWS::EC2::EIP",
-        "Properties" : {
-           "Domain" : "vpc"
-        }
-     },
-      "CorePrivateSubnet": {
-        "Type": "AWS::EC2::Subnet",
-        "Properties": {
-          "VpcId": {
-            "Ref": "CoreVPC"
-          },
-          "CidrBlock": {
-            "Fn::Select": [
-              1,
-              {
-                "Fn::Cidr": [
-                  {
-                    "Fn::GetAtt": [
-                      "CoreVPC", "CidrBlock"
-                    ]
-                  },
-                  2,
-                  8
-                ]
-              }
-            ]
-          },
-          "MapPublicIpOnLaunch": false,
-          "Tags": [
-            {
-              "Key": "Name",
-              "Value": "core-private-subnet"
-            }
-          ]
-        }
-      },
-      "CorePrivateRouteTable": {
-        "Type": "AWS::EC2::RouteTable",
-        "Properties": {
-          "VpcId": {
-            "Ref": "CoreVPC"
-          },
-          "Tags": [
-            {
-              "Key": "Name",
-              "Value": "core-private-rt"
-            }
-          ]
-        }
-      },
-      "CorePrivateRoute": {
-        "Type": "AWS::EC2::Route",
-        "DependsOn": "CorePrivateSubnetTransitGatewayAttachment",
-        "Properties": {
-          "RouteTableId": {
-            "Ref": "CorePrivateRouteTable"
-          },
-          "DestinationCidrBlock": "0.0.0.0/0",
-          "NatGatewayId": {
-            "Ref": "CoreNatGateway"
-          }
-        }
-      },
-      "CorePrivateRouteTableAssociation": {
-        "Type": "AWS::EC2::SubnetRouteTableAssociation",
-        "Properties": {
-          "SubnetId": {
-            "Ref": "CorePrivateSubnet"
-          },
-          "RouteTableId": {
-            "Ref": "CorePrivateRouteTable"
-          }
-        }
-      },
-      "CoreTransitGateway": {
-        "Type": "AWS::EC2::TransitGateway",
-        "Properties": {
-            "Tags": [
+              "Fn::Cidr": [
                 {
-                  "Key": "Name",
-                  "Value": "core-tgw"
-                }
+                  "Fn::GetAtt": [
+                    "CoreVPC",
+                    "CidrBlock"
+                  ]
+                },
+                2,
+                8
               ]
-        }
-      },
-      "CorePrivateSubnetTransitGatewayAttachment": {
-        "Type" : "AWS::EC2::TransitGatewayAttachment",
-        "Properties" : {
-            "SubnetIds": [ 
-              {
-              "Ref": "CorePrivateSubnet" }
-            ],
-            "Tags": [
-              {
-                "Key": "Name",
-                "Value": "core-tgw-attachment"
-              }
-            ],
-            "TransitGatewayId" : {
-              "Ref": "CoreTransitGateway"
-            },
-            "VpcId" : {
-              "Ref": "CoreVPC"
             }
+          ]
+        },
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-public-subnet"
           }
-      },
-      "CoreTransitGatewayRouteTable": {
-        "Type" : "AWS::EC2::TransitGatewayRouteTable",
-        "Properties" : {
-            "TransitGatewayId": {
-              "Ref":"CoreTransitGateway"
-            },
-            "Tags":[
-              {
-                "Key":"Name",
-                "Value": "core-tgw-rt"
-              }
-            ]
+        ]
+      }
+    },
+    "CorePublicSubnetRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "CoreVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-public-rt"
           }
-      },
-      "CoreTransitGatewayStaticRoute": {
-        "Type": "AWS::EC2::TransitGatewayRoute",
-        "Properties": {
-          "DestinationCidrBlock":"0.0.0.0/0",
-          "TransitGatewayAttachmentId": {
-            "Ref": "CorePrivateSubnetTransitGatewayAttachment"
-          },
-          "TransitGatewayRouteTableId": {
-            "Ref": "CoreTransitGatewayRouteTable"
-          }
+        ]
+      }
+    },
+    "CorePublicSubnetRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "CoreAttachIGW",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "CorePublicSubnetRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "CoreIGW"
         }
       }
     },
-    "Outputs": {
-      "TransitGatewayId": {
-        "Description": "ID of the transit gateway created by the stack.",
-        "Value": {
+    "CorePublicSubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "CorePublicSubnet"
+        },
+        "RouteTableId": {
+          "Ref": "CorePublicSubnetRouteTable"
+        }
+      }
+    },
+    "CoreNatGateway": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "CoreNatGatewayElasticIp",
+            "AllocationId"
+          ]
+        },
+        "SubnetId": {
+          "Ref": "CorePublicSubnet"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-nat"
+          }
+        ]
+      }
+    },
+    "CoreNatGatewayElasticIp": {
+      "DependsOn": "CoreAttachIGW",
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "CorePrivateSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "CoreVPC"
+        },
+        "CidrBlock": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::Cidr": [
+                {
+                  "Fn::GetAtt": [
+                    "CoreVPC",
+                    "CidrBlock"
+                  ]
+                },
+                2,
+                8
+              ]
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-private-subnet"
+          }
+        ]
+      }
+    },
+    "CorePrivateSubnetRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "CoreVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-private-rt"
+          }
+        ]
+      }
+    },
+    "CorePrivateSubnetRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "CorePrivateSubnetTransitGatewayAttachment",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "CorePrivateSubnetRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "CoreNatGateway"
+        }
+      }
+    },
+    "CorePrivateRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "CorePrivateSubnet"
+        },
+        "RouteTableId": {
+          "Ref": "CorePrivateSubnetRouteTable"
+        }
+      }
+    },
+    "CoreTransitGateway": {
+      "Type": "AWS::EC2::TransitGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-tgw"
+          }
+        ]
+      }
+    },
+    "CoreTransitGatewayRouteTable": {
+      "Type": "AWS::EC2::TransitGatewayRouteTable",
+      "Properties": {
+        "TransitGatewayId": {
           "Ref": "CoreTransitGateway"
         },
-        "Export": {
-            "Name": { "Fn::Sub": "${AWS::StackName}-TransitGatewayId" }
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-tgw-rt"
+          }
+        ]
+      }
+    },
+    "CoreTransitGatewayStaticRoute": {
+      "Type": "AWS::EC2::TransitGatewayRoute",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "TransitGatewayAttachmentId": {
+          "Ref": "CorePrivateSubnetTransitGatewayAttachment"
+        },
+        "TransitGatewayRouteTableId": {
+          "Ref": "CoreTransitGatewayRouteTable"
+        }
+      }
+    },
+    "CorePrivateSubnetTransitGatewayAttachment": {
+      "Type": "AWS::EC2::TransitGatewayAttachment",
+      "Properties": {
+        "SubnetIds": [
+          {
+            "Ref": "CorePrivateSubnet"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-tgw-attachment"
+          }
+        ],
+        "TransitGatewayId": {
+          "Ref": "CoreTransitGateway"
+        },
+        "VpcId": {
+          "Ref": "CoreVPC"
+        }
+      }
+    },
+    "CorePrivateSubnetTransitGatewayRouteTableAssociation": {
+      "Type": "AWS::EC2::TransitGatewayRouteTableAssociation",
+      "Properties": {
+        "TransitGatewayAttachmentId": {
+          "Ref": "CorePrivateSubnetTransitGatewayAttachment"
+        },
+        "TransitGatewayRouteTableId": {
+          "Ref": "CoreTransitGatewayRouteTable"
+        }
+      }
+    },
+    "CorePrivateSubnetTransitGatewayRouteTablePropagation": {
+      "Type": "AWS::EC2::TransitGatewayRouteTablePropagation",
+      "Properties": {
+        "TransitGatewayAttachmentId": {
+          "Ref": "CorePrivateSubnetTransitGatewayAttachment"
+        },
+        "TransitGatewayRouteTableId": {
+          "Ref": "CoreTransitGatewayRouteTable"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "CoreTransitGatewayId": {
+      "Description": "ID of the transit gateway created by the stack.",
+      "Value": {
+        "Ref": "CoreTransitGateway"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-TransitGatewayId"
+        }
+      }
+    },
+    "CoreTransitGatewayRouteTableId": {
+      "Description": "ID of the transit gateway route table created by the stack.",
+      "Value": {
+        "Ref": "CoreTransitGatewayRouteTable"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-TransitGatewayRouteTableId"
         }
       }
     }
   }
+}
