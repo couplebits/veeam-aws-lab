@@ -232,6 +232,32 @@
               "Ref": "CoreVPC"
             }
           }
+      },
+      "CoreTransitGatewayRouteTable": {
+        "Type" : "AWS::EC2::TransitGatewayRouteTable",
+        "Properties" : {
+            "TransitGatewayId": {
+              "Ref":"CoreTransitGateway"
+            },
+            "Tags":[
+              {
+                "Key":"Name",
+                "Value": "core-tgw-rt"
+              }
+            ]
+          }
+      },
+      "CoreTransitGatewayStaticRoute": {
+        "Type": "AWS::EC2::TransitGatewayRoute",
+        "Properties": {
+          "DestinationCidrBlock":"0.0.0.0/0",
+          "TransitGatewayAttachmentId": {
+            "Ref": "CorePrivateSubnetTransitGatewayAttachment"
+          },
+          "TransitGatewayRouteTableId": {
+            "Ref": "CoreTransitGatewayRouteTable"
+          }
+        }
       }
     },
     "Outputs": {
