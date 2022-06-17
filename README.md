@@ -1,10 +1,16 @@
 # Veeam Backup for AWS Lab
 
-CloudFormation templates for deploying Veeam Backup for AWS lab into two accounts and regions and bash scripts for mass deployments.
+## Information
 
-Created by Eric Ellenberg - Sr Systems Engineer, Public Cloud Solutions, Veeam
+Created by Eric Ellenberg, Veeam Software
 
-## REQUIREMENTS
+This branch is for Veeam's AWS Flex Lab, Third Edition. More details and updates to come.
+
+## Objectives
+
+The objective with this lab is to guide attendees through a misconfigured environment and achieve successful backups with Veeam Backup for AWS.
+
+## Requirements
 
 The lab is deployed using a CloudFormation template that will deploy lab resources into two regions within two AWS accounts. **The deployment will fail if you have not fulfilled the requirements.**
 
@@ -48,7 +54,7 @@ The trust policy on the Execution role should appear similar to the following ex
 
 For more details on CloudFormation StackSet roles and self-managed permissions, visit: <https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-prereqs-self-managed.html>
 
-## DEPLOYMENT - HOW TO DEPLOY THE LAB
+## Deployment
 
 1) Login to the AWS account which will serve as the backup account.
 2) From the top right corner of the AWS management console, select the region which will be used as the primary region for the lab from the dropdown.
@@ -69,7 +75,7 @@ For more details on CloudFormation StackSet roles and self-managed permissions, 
 
 The user's lab resources will be deployed into both AWS accounts and both regions within the two accounts. This usually takes 4-5 minutes.
 
-## LIST OF RESOURCES
+## Resources
 
 * Backup account
   * Global
@@ -97,7 +103,7 @@ The user's lab resources will be deployed into both AWS accounts and both region
     * (1) EC2 instance running Ubuntu 20.04
     * (1) Customer managed key (CMK) to encrypt the EBS volume attached to the Ubuntu instance
 
-## TEARDOWN - PART 1/2 - CLOUDFORMATION
+## Teardown - Part 1 of 2 - Stacks
 
 1) Log into the AWS account being used as the backup account.
 2) From the top right corner of the AWS management console, select the region that was used as the primary region for the lab from the dropdown.
@@ -108,7 +114,7 @@ The user's lab resources will be deployed into both AWS accounts and both region
 
 The user's resources which were deployed by CloudFormation in both accounts and both regions will be deleted. Please be patient as this can take some time.
 
-## TEARDOWN - PART 2/2 - MANUAL STEPS
+## Teardown - Part 2 of 2 - Manual steps
 
 During the lab, attendees will create IAM roles and policies. Other resources such as EBS snapshots are created by Veeam Backup for AWS during the lab. These resources must be removed manually.
 
@@ -141,11 +147,16 @@ The following resources must be manually removed _after all CloudFormation stack
     * Snapshots of the EBS volumes which were connected to the Ubuntu instances
     * The EC2 key pair named _vbaws-lab-prod-secondary_
 
-## MASS DEPLOYMENT
+## Deployment for groups
 
-If you are deploying this lab for a large group of users, I have written scripts to accomplish the deployment and teardown processes quickly and simply. They are found in the scripts directory in this repo.
+If you are deploying this lab for a large group of users, I have written scripts to accomplish the deployment and teardown processes with minimal effort. They are found in the scripts directory in this repo.
 
-## MASS DEPLOYMENT REQUIREMENTS
+### Notes on group deployments
+
+* Be mindful of AWS service quotas. In particular, the default VPC quota is limited to (5) VPCs per region. Quotas must be increased in both regions within both accounts.
+* In the backup account primary region, the AWS service quota for _Stack sets per administrator account_ may need to be increased, as each user's deployment includes 3 stack sets.
+
+## Requirements for group deployments
 
 * An IAM user with programmatic access enabled.
   * You will need an access and secret key to configure the AWS CLI to access the AWS account that will serve as your backup account.
@@ -155,7 +166,7 @@ If you are deploying this lab for a large group of users, I have written scripts
   * Only lowercase letters and the numbers 0-9 are allowed.
   * **If you create the file in Windows:** The deploy script expects standard UNIX line breaks (LF). Ensure that your text editor of choice saves the text file with LF line breaks.
 
-## HOW TO DEPLOY
+## Using scripts for group deployments
 
 1) In the scripts directory, open the _deploy.sh_ script in your text editor.
 2) Enter the values for the following deployment parameters:
@@ -172,7 +183,7 @@ bash ./deploy.sh
 
 The script will iterate through the list of attendees and deploy their resources into the accounts and regions specified, 8 users at a time. This limit has been implemented to avoid exceeding AWS rate limits and causing errors.
 
-## HOW TO DELETE
+## Using scripts for group deployment teardown
 
 1) In the scripts directory, find the _teardown.sh_ script.
 2) Place the _teardown.sh_ script in the same directory as the _attendees.txt_ file.
@@ -183,8 +194,4 @@ bash ./teardown.sh
 ```
 
 The script will iterate through the list of attendees and delete their resources, 8 users at a time. This limit has been implemented to avoid exceeding AWS rate limits and causing errors.
-
-### NOTES ON MASS DEPLOYMENT
-
-* Be mindful of AWS service quotas. In particular, the default VPC quota is limited to (5) VPCs per region. Quotas must be increased in both regions within both accounts.
-* In the backup account primary region, the AWS service quota for _Stack sets per administrator account_ may need to be increased, as each user's deployment includes 3 stack sets.
+4) Manual removal of some resources is still required. Review the section named "Teardown - Part 2 of 2 - Manual steps" for details.

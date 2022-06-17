@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Veeam Backup for AWS Lab Setup - Backup Primary Region - Master",
+  "Description": "Veeam Backup for AWS Lab Setup - Backup Account - Main",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -22,11 +22,26 @@
         },
         {
           "Label": {
-            "default": "Regions"
+            "default": "Region"
           },
           "Parameters": [
-            "PrimaryRegionId",
-            "SecondaryRegionId"
+            "RegionId"
+          ]
+        },
+        {
+          "Label": {
+            "default": "VPC CIDR"
+          },
+          "Parameters": [
+            "VpcCidr"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Core Network Stack"
+          },
+          "Parameters": [
+            "NetworkStackName"
           ]
         },
         {
@@ -36,6 +51,14 @@
           "Parameters": [
             "CmkPolicyRole"
           ]
+        },
+        {
+          "Label": {
+            "default": "Windows AMI"
+          },
+          "Parameters":[
+            "LatestWindowsServer2022Ami"
+          ]
         }
       ],
       "ParameterLabels": {
@@ -43,23 +66,29 @@
           "default": "Username for this lab"
         },
         "ProductionAccountId": {
-          "default": "Production account where instances to be protected will be deployed"
+          "default": "AWS account where instances to be protected will be deployed"
         },
-        "PrimaryRegionId": {
-          "default": "Primary region where lab resources will be deployed"
+        "RegionId": {
+          "default": "AWS Region where lab resources will be deployed"
         },
-        "SecondaryRegionId": {
-          "default": "Secondary region where lab resources will be deployed"
+        "VpcCidr": {
+          "default": "CIDR block for the attendee's VPC"
+        },
+        "NetworkStackName": {
+          "default": "Name of the core network stack for the lab"
         },
         "CmkPolicyRole": {
-          "default": "The name of the IAM role that will be given access to the KMS key created for the lab"
+          "default": "IAM role that will be given access to the KMS key created for the lab"
+        },
+        "LatestWindowsServer2022Ami": {
+          "default": "Do not change this value. This is the AMI that will be used to launch the jumpbox"
         }
       }
     }
   },
   "Parameters": {
     "UserName": {
-      "Description": "First letter of first name, first four letters of last name, all lowercase. Five letters total. Example: Victor Flex -> vflex, or Woo Hoo -> wohoo",
+      "Description": "First letter of first name, first four letters of last name, all lowercase, 5 characters total. Example: Victor Flex -> vflex, or Woo Hoo -> wohoo",
       "Type": "String",
       "AllowedPattern": "^[a-z0-9]*$",
       "MaxLength": 5,
@@ -72,8 +101,8 @@
       "MaxLength": 12,
       "ConstraintDescription": "AWS account IDs have 12 digits. Check the account ID number."
     },
-    "PrimaryRegionId": {
-      "Description": "Region ID of the primary region. Example: us-east-1",
+    "RegionId": {
+      "Description": "Region ID. Example: us-east-1",
       "Type": "String",
       "AllowedValues": [
         "us-east-1",
@@ -97,116 +126,110 @@
       ],
       "ConstraintDescription": "The region specified is not supported or is invalid."
     },
-    "SecondaryRegionId": {
-      "Description": "Region ID of the secondary region. Example: us-west-1",
-      "Type": "String",
-      "AllowedValues": [
-        "us-east-1",
-        "us-east-2",
-        "us-west-1",
-        "us-west-2",
-        "ap-east-1",
-        "ap-south-1",
-        "ap-northeast-1",
-        "ap-northeast-2",
-        "ap-southeast-1",
-        "ap-southeast-2",
-        "ca-central-1",
-        "eu-central-1",
-        "eu-west-1",
-        "eu-west-2",
-        "eu-west-3",
-        "eu-north-1",
-        "sa-east-1",
-        "me-south-1"
-      ],
-      "ConstraintDescription": "The region specified is not supported or is invalid."
+    "VpcCidr": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "Description": "Specify an IPv4 CIDR. This CIDR must not overlap with the network stack's CIDR. Example: 10.1.0.0/16.",
+      "Type": "String"
+    },
+    "NetworkStackName": {
+      "Description": "Specify the name of the core network stack that was deployed for this lab. This is a prerequisite. If you have not deployed the core network stack, refer to the lab instructions to deploy it first.",
+      "Type": "String"
     },
     "CmkPolicyRole": {
       "Description": "Specify the name of the IAM role that will be given access to the KMS key created for the lab.",
       "Type": "String"
+    },
+    "LatestWindowsServer2022Ami": {
+      "Description": "Do not change this value. This specifies the latest available AMI for Windows Server 2022 Base.",
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/ami-windows-latest/Windows_Server-2022-English-Full-Base"
     }
   },
   "Mappings": {
     "RegionMap": {
       "us-east-1": {
-        "HVM64": "ami-012036935c3fb6451"
+        "HVM64": "ami-01d64d03fd3da4685"
       },
       "us-east-2": {
-        "HVM64": "ami-064010c2c01be128d"
+        "HVM64": "ami-032d2c2a2eb72d4cc"
       },
       "us-west-1": {
-        "HVM64": "ami-084f37da757167e70"
+        "HVM64": "ami-0e6180c67ec8d75f0"
       },
       "us-west-2": {
-        "HVM64": "ami-0a1d79a133326dcea"
+        "HVM64": "ami-0a187023c1796a331"
       },
       "af-south-1": {
-        "HVM64": "ami-0607a289247a82af3"
+        "HVM64": "ami-0738271cdb44fb1da"
       },
       "ap-south-1": {
-        "HVM64": "ami-02dc338cd7c8d11b8"
+        "HVM64": "ami-0b876110746918e21"
       },
       "ap-northeast-2": {
-        "HVM64": "ami-0ac9bc0ebc9a05927"
+        "HVM64": "ami-0f7954f2ef19ae374"
       },
       "ap-southeast-1": {
-        "HVM64": "ami-09ffe1b97b90a1745"
+        "HVM64": "ami-052dab2454033a9e1"
       },
       "ap-southeast-2": {
-        "HVM64": "ami-0ffb4357bb01e6bc6"
+        "HVM64": "ami-0c0ca80e7520ea883"
+      },
+      "ap-southeast-3": {
+        "HVM64": "ami-0097c45e03987b8c1"
       },
       "ap-northeast-1": {
-        "HVM64": "ami-015c263ac48a3318c"
+        "HVM64": "ami-0fd88cdef00a44a3c"
       },
       "ca-central-1": {
-        "HVM64": "ami-0955797862fb25608"
+        "HVM64": "ami-0566013be96032266"
       },
       "eu-central-1": {
-        "HVM64": "ami-037d550e9c09ceeb6"
+        "HVM64": "ami-0220b641d11c2651c"
       },
       "eu-west-1": {
-        "HVM64": "ami-023c08d7e3caf1b71"
+        "HVM64": "ami-06ce4922128fcadfc"
       },
       "eu-west-2": {
-        "HVM64": "ami-0f15f892810a99c44"
+        "HVM64": "ami-098e708cf737bbe6d"
       },
       "eu-south-1": {
-        "HVM64": "ami-0b7702b212a718670"
+        "HVM64": "ami-0a6e6011f4e943998"
       },
       "eu-west-3": {
-        "HVM64": "ami-004e918dd568f6f13"
+        "HVM64": "ami-0d3ac2d99abcef31a"
       },
       "eu-north-1": {
-        "HVM64": "ami-08ba1571eca423ffb"
+        "HVM64": "ami-0c46900d53c8147e7"
       },
       "sa-east-1": {
-        "HVM64": "ami-0101827141d07fae5"
+        "HVM64": "ami-0f18a59a2880cb58b"
       },
       "me-south-1": {
-        "HVM64": "ami-078cdccc631e6eb7e"
+        "HVM64": "ami-0cdfa3c4c8ec11a94"
       },
       "ap-east-1": {
-        "HVM64": "ami-012fa48916802364d"
+        "HVM64": "ami-0dd789af5119c10a8"
       },
       "ap-northeast-3": {
-        "HVM64": "ami-0d6b66f870af9e85c"
+        "HVM64": "ami-0d6493ebee363f105"
       },
       "us-gov-east-1": {
-        "HVM64": "ami-08e76a10ecfa59184"
+        "HVM64": "ami-06a9b6586f361570c"
       },
       "us-gov-west-1": {
-        "HVM64": "ami-00a8af360a9c559b0"
+        "HVM64": "ami-0e79e30c590cb549b"
       }
     }
   },
   "Resources": {
-    "BackupPrimaryVPC": {
+    "BackupVPC": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
-        "CidrBlock": "10.10.0.0/16",
-        "EnableDnsHostnames": false,
-        "EnableDnsSupport": false,
+        "CidrBlock": {
+          "Ref": "VpcCidr"
+        },
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
         "InstanceTenancy": "default",
         "Tags": [
           {
@@ -218,7 +241,7 @@
                   {
                     "Ref": "UserName"
                   },
-                  "backup-primary-vpc"
+                  "backup-vpc"
                 ]
               ]
             }
@@ -226,33 +249,7 @@
         ]
       }
     },
-    "BackupPrimarySubnet": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "VpcId": {
-          "Ref": "BackupPrimaryVPC"
-        },
-        "CidrBlock": "10.10.0.0/24",
-        "MapPublicIpOnLaunch": true,
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-primary-subnet"
-                ]
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "BackupPrimaryIGW": {
+    "BackupIGW": {
       "Type": "AWS::EC2::InternetGateway",
       "Properties": {
         "Tags": [
@@ -265,7 +262,7 @@
                   {
                     "Ref": "UserName"
                   },
-                  "backup-primary-igw"
+                  "backup-igw"
                 ]
               ]
             }
@@ -273,22 +270,64 @@
         ]
       }
     },
-    "BackupPrimaryAttachIGW": {
+    "BackupAttachIGW": {
       "Type": "AWS::EC2::VPCGatewayAttachment",
       "Properties": {
         "VpcId": {
-          "Ref": "BackupPrimaryVPC"
+          "Ref": "BackupVPC"
         },
         "InternetGatewayId": {
-          "Ref": "BackupPrimaryIGW"
+          "Ref": "BackupIGW"
         }
       }
     },
-    "BackupPrimaryRouteTable": {
+    "BackupPublicSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "BackupVPC"
+        },
+        "CidrBlock": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::Cidr": [
+                {
+                  "Fn::GetAtt": [
+                    "BackupVPC",
+                    "CidrBlock"
+                  ]
+                },
+                2,
+                8
+              ]
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "backup-public-subnet"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "BackupPublicRouteTable": {
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": {
-          "Ref": "BackupPrimaryVPC"
+          "Ref": "BackupVPC"
         },
         "Tags": [
           {
@@ -300,7 +339,7 @@
                   {
                     "Ref": "UserName"
                   },
-                  "backup-primary-rt"
+                  "backup-public-rt"
                 ]
               ]
             }
@@ -308,53 +347,197 @@
         ]
       }
     },
-    "BackupPrimaryRoute": {
+    "BackupPublicRoute": {
       "Type": "AWS::EC2::Route",
-      "DependsOn": "BackupPrimaryAttachIGW",
+      "DependsOn": "BackupAttachIGW",
       "Properties": {
         "RouteTableId": {
-          "Ref": "BackupPrimaryRouteTable"
+          "Ref": "BackupPublicRouteTable"
         },
         "DestinationCidrBlock": "0.0.0.0/0",
         "GatewayId": {
-          "Ref": "BackupPrimaryIGW"
+          "Ref": "BackupIGW"
         }
       }
     },
-    "BackupPrimarySubnetRouteTableAssociation": {
+    "BackupPublicRouteTableAssociation": {
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": {
-          "Ref": "BackupPrimarySubnet"
+          "Ref": "BackupPublicSubnet"
         },
         "RouteTableId": {
-          "Ref": "BackupPrimaryRouteTable"
+          "Ref": "BackupPublicRouteTable"
         }
       }
     },
-    "BackupPrimaryVpceS3": {
+    "BackupPrivateSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "BackupVPC"
+        },
+        "CidrBlock": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::Cidr": [
+                {
+                  "Fn::GetAtt": [
+                    "BackupVPC",
+                    "CidrBlock"
+                  ]
+                },
+                2,
+                8
+              ]
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "backup-private-subnet"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "BackupPrivateRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "BackupVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "backup-private-rt"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "BackupPrivateSubnetTransitGatewayAttachment": {
+      "Type": "AWS::EC2::TransitGatewayAttachment",
+      "Properties": {
+        "SubnetIds": [
+          {
+            "Ref": "BackupPrivateSubnet"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "backup-tgw-attachment"
+                ]
+              ]
+            }
+          }
+        ],
+        "TransitGatewayId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${NetworkStackName}-TransitGatewayId"
+          }
+        },
+        "VpcId": {
+          "Ref": "BackupVPC"
+        }
+      }
+    },
+    "BackupPrivateRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "BackupPrivateSubnetTransitGatewayAttachment",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "BackupPrivateRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "TransitGatewayId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${NetworkStackName}-TransitGatewayId"
+          }
+        }
+      }
+    },
+    "BackupPrivateRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "BackupPrivateSubnet"
+        },
+        "RouteTableId": {
+          "Ref": "BackupPrivateRouteTable"
+        }
+      }
+    },
+    "BackupVpcEndpointS3": {
       "Type": "AWS::EC2::VPCEndpoint",
       "Properties": {
         "RouteTableIds": [
           {
-            "Ref": "BackupPrimaryRouteTable"
+            "Ref": "BackupPrivateRouteTable"
           }
         ],
         "ServiceName": {
           "Fn::Sub": "com.amazonaws.${AWS::Region}.s3"
         },
         "VpcId": {
-          "Ref": "BackupPrimaryVPC"
+          "Ref": "BackupVPC"
         }
       }
     },
-    "BackupPrimarySG": {
+    "BackupVpcEndpointEbs": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "VpcId": {
+          "Ref": "BackupVPC"
+        },
+        "VpcEndpointType": "Interface",
+        "SubnetIds": [
+          {
+            "Ref": "BackupPrivateSubnet"
+          }
+        ],
+        "PrivateDnsEnabled": true,
+        "ServiceName": {
+          "Fn::Sub": "com.amazonaws.${AWS::Region}.ebs"
+        }
+      }
+    },
+    "BackupPublicSG": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "VpcId": {
-          "Ref": "BackupPrimaryVPC"
+          "Ref": "BackupVPC"
         },
-        "GroupDescription": "Allow HTTPS / TCP 443",
+        "GroupDescription": "Allow RDP access on TCP 3389",
         "GroupName": {
           "Fn::Join": [
             "-",
@@ -362,7 +545,51 @@
               {
                 "Ref": "UserName"
               },
-              "backup-sg"
+              "backup-public-sg"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 3389,
+            "ToPort": 3389,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "backup-public-sgrule"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "BackupPrivateSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "BackupVPC"
+        },
+        "GroupDescription": "Allow HTTPS access on TCP 443",
+        "GroupName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "UserName"
+              },
+              "backup-private-sg"
             ]
           ]
         },
@@ -371,7 +598,9 @@
             "IpProtocol": "tcp",
             "FromPort": 443,
             "ToPort": 443,
-            "CidrIp": "10.10.0.0/16"
+            "CidrIp": {
+              "Ref": "VpcCidr"
+            }
           }
         ],
         "Tags": [
@@ -384,7 +613,7 @@
                   {
                     "Ref": "UserName"
                   },
-                  "backup-sgrule"
+                  "backup-private-sgrule"
                 ]
               ]
             }
@@ -392,7 +621,7 @@
         ]
       }
     },
-    "BackupPrimaryBucket": {
+    "BackupBucket": {
       "Type": "AWS::S3::Bucket",
       "Properties": {
         "BucketName": {
@@ -402,7 +631,7 @@
               {
                 "Ref": "UserName"
               },
-              "bucket-primary-veeam-aws-lab"
+              "bucket-veeam-aws-lab"
             ]
           ]
         },
@@ -415,22 +644,22 @@
         }
       }
     },
-    "BackupPrimaryBucketEmptyOnDelete": {
+    "BackupBucketEmptyOnDelete": {
       "Type": "Custom::EmptyOnDelete",
       "Properties": {
         "ServiceToken": {
           "Fn::GetAtt": [
-            "BackupPrimaryBucketEmptyOnDeleteLambda",
+            "BackupBucketEmptyOnDeleteLambda",
             "Arn"
           ]
         },
         "BucketName": {
-          "Ref": "BackupPrimaryBucket"
+          "Ref": "BackupBucket"
         }
       }
     },
-    "BackupPrimaryBucketEmptyOnDeleteLambda": {
-      "DependsOn": "BackupPrimaryBucket",
+    "BackupBucketEmptyOnDeleteLambda": {
+      "DependsOn": "BackupBucket",
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -440,7 +669,7 @@
         "Handler": "index.lambda_handler",
         "Role": {
           "Fn::GetAtt": [
-            "BackupPrimaryBucketEmptyOnDeleteLambdaRole",
+            "BackupBucketEmptyOnDeleteLambdaRole",
             "Arn"
           ]
         },
@@ -448,7 +677,7 @@
         "Timeout": 300
       }
     },
-    "BackupPrimaryBucketEmptyOnDeleteLambdaRole": {
+    "BackupBucketEmptyOnDeleteLambdaRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
@@ -470,7 +699,7 @@
         "Path": "/",
         "Policies": [
           {
-            "PolicyName": "BackupPrimaryBucketEmptyOnDeleteLambdaPolicy",
+            "PolicyName": "BackupBucketEmptyOnDeleteLambdaPolicy",
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
@@ -536,13 +765,34 @@
         "Path": "/",
         "Policies": [
           {
-            "PolicyName": "vcb-ec2-policy",
+            "PolicyName": "vcb-policy",
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "backup-storage:MountCapsule",
+                    "backup:CopyFromBackupVault",
+                    "backup:CopyIntoBackupVault",
+                    "backup:CreateBackupVault",
+                    "backup:DeleteBackupVault",
+                    "backup:DeleteRecoveryPoint",
+                    "backup:DescribeBackupJob",
+                    "backup:DescribeCopyJob",
+                    "backup:DescribeRecoveryPoint",
+                    "backup:DescribeRestoreJob",
+                    "backup:ListBackupVaults",
+                    "backup:ListRecoveryPointsByBackupVault",
+                    "backup:ListTags",
+                    "backup:StartBackupJob",
+                    "backup:StartCopyJob",
+                    "backup:StartRestoreJob",
+                    "backup:StopBackupJob",
+                    "backup:TagResource",
+                    "backup:UntagResource",
+                    "ebs:ListChangedBlocks",
+                    "ebs:ListSnapshotBlocks",
                     "ec2:AcceptVpcEndpointConnections",
                     "ec2:AllocateAddress",
                     "ec2:AssociateAddress",
@@ -648,6 +898,7 @@
                     "ec2:DescribeManagedPrefixLists",
                     "ec2:DescribeNatGateways",
                     "ec2:DescribeNetworkAcls",
+                    "ec2:DescribeNetworkInterfaceAttribute",
                     "ec2:DescribeNetworkInterfaces",
                     "ec2:DescribeRegions",
                     "ec2:DescribeRouteTables",
@@ -697,6 +948,7 @@
                     "ec2:ModifySubnetAttribute",
                     "ec2:ModifyTransitGateway",
                     "ec2:ModifyTransitGatewayVpcAttachment",
+                    "ec2:ModifyVolume",
                     "ec2:ModifyVpcAttribute",
                     "ec2:ModifyVpcEndpoint",
                     "ec2:ModifyVpcEndpointServiceConfiguration",
@@ -713,45 +965,7 @@
                     "ec2:SearchTransitGatewayRoutes",
                     "ec2:StartInstances",
                     "ec2:StopInstances",
-                    "ec2:TerminateInstances"
-                  ],
-                  "Resource": "*"
-                }
-              ]
-            }
-          },
-          {
-            "PolicyName": "vcb-policy",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "backup-storage:MountCapsule",
-                    "backup:CopyFromBackupVault",
-                    "backup:CopyIntoBackupVault",
-                    "backup:CreateBackupVault",
-                    "backup:DeleteBackupVault",
-                    "backup:DeleteRecoveryPoint",
-                    "backup:DescribeBackupJob",
-                    "backup:DescribeCopyJob",
-                    "backup:DescribeRecoveryPoint",
-                    "backup:DescribeRestoreJob",
-                    "backup:ListBackupVaults",
-                    "backup:ListRecoveryPointsByBackupVault",
-                    "backup:ListTags",
-                    "backup:StartBackupJob",
-                    "backup:StartCopyJob",
-                    "backup:StartRestoreJob",
-                    "backup:StopBackupJob",
-                    "backup:TagResource",
-                    "backup:UntagResource",
-                    "ebs:ListChangedBlocks",
-                    "ebs:ListSnapshotBlocks",
-                    "ec2:CreateTransitGatewayPrefixListReference",
-                    "ec2:DeleteTransitGatewayPrefixListReference",
-                    "ec2:GetTransitGatewayPrefixListReferences",
+                    "ec2:TerminateInstances",
                     "elasticfilesystem:Backup",
                     "elasticfilesystem:CreateAccessPoint",
                     "elasticfilesystem:CreateFileSystem",
@@ -847,10 +1061,20 @@
                     "ram:TagResource",
                     "ram:UntagResource",
                     "rds:AddTagsToResource",
+                    "rds:CopyDbClusterSnapshot",
                     "rds:CopyDBSnapshot",
+                    "rds:CreateDBClusterSnapshot",
+                    "rds:CreateDBInstance",
                     "rds:CreateDBSnapshot",
+                    "rds:DeleteDBCluster",
+                    "rds:DeleteDbclusterSnapshot",
                     "rds:DeleteDBInstance",
                     "rds:DeleteDBSnapshot",
+                    "rds:DescribeAccountAttributes",
+                    "rds:DescribeDBClusterParameterGroups",
+                    "rds:DescribeDBClusterParameters",
+                    "rds:DescribeDBClusters",
+                    "rds:DescribeDBClusterSnapshots",
                     "rds:DescribeDBEngineVersions",
                     "rds:DescribeDBInstances",
                     "rds:DescribeDBParameterGroups",
@@ -859,9 +1083,12 @@
                     "rds:DescribeOptionGroups",
                     "rds:DescribeOrderableDBInstanceOptions",
                     "rds:ListTagsForResource",
+                    "rds:ModifyDBCluster",
+                    "rds:ModifyDBClusterSnapshotAttribute",
                     "rds:ModifyDBInstance",
                     "rds:ModifyDBSnapshotAttribute",
                     "rds:RemoveTagsFromResource",
+                    "rds:RestoreDBClusterFromSnapshot",
                     "rds:RestoreDBInstanceFromDBSnapshot",
                     "s3:DeleteObject",
                     "s3:GetBucketLocation",
@@ -887,6 +1114,7 @@
                     "sqs:SetQueueAttributes",
                     "ssm:DescribeInstanceInformation",
                     "ssm:GetCommandInvocation",
+                    "ssm:GetParameter",
                     "ssm:SendCommand"
                   ],
                   "Resource": "*"
@@ -1019,7 +1247,7 @@
     },
     "VbawsInstance": {
       "Type": "AWS::EC2::Instance",
-      "DependsOn": "BackupPrimaryAttachIGW",
+      "DependsOn": "BackupPrivateSubnetTransitGatewayAttachment",
       "Properties": {
         "ImageId": {
           "Fn::FindInMap": [
@@ -1030,17 +1258,17 @@
             "HVM64"
           ]
         },
-        "InstanceType": "t2.medium",
+        "InstanceType": "t3.medium",
         "IamInstanceProfile": {
           "Ref": "VcbInstanceProfile"
         },
-        "KeyName": "vbaws-lab-backup-primary",
+        "KeyName": "vbaws-lab-backup",
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
             "Ebs": {
               "VolumeSize": 16,
-              "DeleteOnTermination":true
+              "DeleteOnTermination": true
             }
           },
           {
@@ -1069,11 +1297,11 @@
         ],
         "SecurityGroupIds": [
           {
-            "Ref": "BackupPrimarySG"
+            "Ref": "BackupPrivateSG"
           }
         ],
         "SubnetId": {
-          "Ref": "BackupPrimarySubnet"
+          "Ref": "BackupPrivateSubnet"
         },
         "UserData": {
           "Fn::Base64": {
@@ -1098,94 +1326,75 @@
         }
       }
     },
-    "BackupSecondaryRegion": {
-      "Type": "AWS::CloudFormation::StackSet",
+    "JumpBoxInstance": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": "BackupAttachIGW",
       "Properties": {
-        "StackSetName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "UserName"
-              },
-              "backup-secondary"
-            ]
-          ]
+        "ImageId": {
+          "Ref": "LatestWindowsServer2022Ami"
         },
-        "Capabilities": [
-          "CAPABILITY_IAM"
-        ],
-        "Parameters": [
+        "InstanceType": "t3.large",
+        "KeyName": "vbaws-lab-backup",
+        "Tags": [
           {
-            "ParameterKey": "UserName",
-            "ParameterValue": {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "jumpbox"
+                ]
+              ]
+            }
+          },
+          {
+            "Key": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "tag"
+                ]
+              ]
+            },
+            "Value": {
               "Ref": "UserName"
             }
           }
         ],
-        "PermissionModel": "SELF_MANAGED",
-        "StackInstancesGroup": [
+        "NetworkInterfaces": [
           {
-            "DeploymentTargets": {
-              "Accounts": [
-                {
-                  "Ref": "AWS::AccountId"
-                }
-              ]
-            },
-            "Regions": [
+            "GroupSet": [
               {
-                "Ref": "SecondaryRegionId"
+                "Ref": "BackupPublicSG"
               }
-            ]
-          }
-        ],
-        "TemplateURL": "https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/vbaws-lab-backup-secondary.template"
-      }
-    },
-    "ProdPrimaryRegion": {
-      "Type": "AWS::CloudFormation::StackSet",
-      "Properties": {
-        "StackSetName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "UserName"
-              },
-              "prod-primary"
-            ]
-          ]
-        },
-        "Parameters": [
-          {
-            "ParameterKey": "UserName",
-            "ParameterValue": {
-              "Ref": "UserName"
+            ],
+            "AssociatePublicIpAddress": true,
+            "DeviceIndex": "0",
+            "DeleteOnTermination": true,
+            "SubnetId": {
+              "Ref": "BackupPublicSubnet"
             }
           }
         ],
-        "PermissionModel": "SELF_MANAGED",
-        "StackInstancesGroup": [
+        "BlockDeviceMappings": [
           {
-            "DeploymentTargets": {
-              "Accounts": [
-                {
-                  "Ref": "ProductionAccountId"
-                }
-              ]
-            },
-            "Regions": [
-              {
-                "Ref": "PrimaryRegionId"
-              }
-            ]
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeType": "gp3",
+              "VolumeSize": 30,
+              "DeleteOnTermination": true
+            }
           }
-        ],
-        "TemplateURL": "https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/vbaws-lab-prod-primary.template"
+        ]
       }
     },
-    "ProdSecondaryRegion": {
+    "ProdRegion": {
       "Type": "AWS::CloudFormation::StackSet",
       "Properties": {
         "StackSetName": {
@@ -1195,7 +1404,7 @@
               {
                 "Ref": "UserName"
               },
-              "prod-secondary"
+              "prod-stack"
             ]
           ]
         },
@@ -1225,12 +1434,12 @@
             },
             "Regions": [
               {
-                "Ref": "SecondaryRegionId"
+                "Ref": "RegionId"
               }
             ]
           }
         ],
-        "TemplateURL": "https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/vbaws-lab-prod-secondary.template"
+        "TemplateURL": "https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/v3/vbaws-lab-prod.template"
       }
     }
   },
