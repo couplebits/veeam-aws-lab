@@ -3,9 +3,8 @@
 # REQUIREMENTS
 # AWS CLI v2 - https://github.com/aws/aws-cli/tree/v2
 
-# Extract the list of attendees from the attendees file.
+# Declare the file where the list of attendees is located.
 attendeesFile=attendees.txt
-attendees=$(cat $attendeesFile)
 
 # Specify the name of the network stack that will be deployed for the lab.
 NetworkStackName=
@@ -30,6 +29,9 @@ echo "Waiting for core network deployment to complete before proceeding..." >> l
 echo $netstack >> networkstack.txt && \
 aws cloudformation wait stack-create-complete --stack-name $netstack && \
 echo "Deployed core network stack. Deploying attendee labs..." >> logs.txt
+
+# Extract the list of attendees from the attendees file.
+attendees=$(cat $attendeesFile)
 
 # Iterator variable to prevent deploying more than 8 labs at a time to avoid AWS rate limits.
 i=1

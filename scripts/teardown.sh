@@ -33,18 +33,16 @@ do
 done
 
 # Prompt to confirm that all attendee stacks are deleted before attempting delete of the core network stack.
-read -n 1 -r -s -p "Confirm that all attendee stacks are in DELETE_COMPLETE status, then press any key to continue..."
+read -n 1 -r -s -p "Confirm that all attendee stacks are in DELETE_COMPLETE status, then press enter to continue..."
 
 # Extract the stack ID from the network stack file.
 networkStack=$(cat networkstack.txt)
 
 # Delete the core network stack, then wait until it is done.
 aws cloudformation delete-stack --stack-name $networkStack
-
 echo "Deletion command for $networkStack successful." >> logs.txt
-
 aws cloudformation wait stack-delete-complete --stack-name $networkStack
-
 echo "Deletion of the core network stack is complete. Thank you for using this lab." >> logs.txt
 
+# Remove the stacks file and networkstack file.
 rm $stacksFile $networkStackFile
