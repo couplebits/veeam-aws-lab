@@ -51,6 +51,7 @@
         },
         "CidrBlock": "10.1.0.0/24",
         "MapPublicIpOnLaunch": true,
+        "AvailabilityZone": "us-east-1a",
         "Tags": [
           {
             "Key": "Name",

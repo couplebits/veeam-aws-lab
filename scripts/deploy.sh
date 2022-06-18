@@ -20,7 +20,7 @@ RegionId=
 CmkPolicyRole=
 
 # Deploy the stack for the core network. Wait for the core network stack to complete before deploying attendee labs.
-echo "Deploying lab network stack..." >> logs.txt && \
+echo "Deploying core network stack for lab..." >> logs.txt && \
 netstack=$(aws cloudformation create-stack --capabilities CAPABILITY_IAM \
 --template-url https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/v3/vbaws-lab-core-network.template \
 --stack-name $NetworkStackName --output text --query "StackId" --region $RegionId \
