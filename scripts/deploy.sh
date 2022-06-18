@@ -19,10 +19,19 @@ RegionId=
 # Specify the name of the IAM role that will be given access to the key created for the lab.
 CmkPolicyRole=
 
-# Deploy the stack for the transit gateway.
-echo "Deploying lab network stack..." >> logs.txt && aws cloudformation create-stack --capabilities CAPABILITY_IAM --template-url https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/v3/vbaws-lab-core-network.template --stack-name $NetworkStackName --output text --region $RegionId --parameters ParameterKey=VpcCidr,ParameterValue=10.0.0.0/16
+# Deploy the stack for the core network. Wait for the core network stack to complete before deploying attendee labs.
+echo "Deploying lab network stack..." >> logs.txt && \
+netstack=$(aws cloudformation create-stack --capabilities CAPABILITY_IAM \
+--template-url https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/v3/vbaws-lab-core-network.template \
+--stack-name $NetworkStackName --output text --query "StackId" --region $RegionId \
+--parameters ParameterKey=VpcCidr,ParameterValue=10.0.0.0/16) && \
+echo "Core network stack ID is $netstack." >> logs.txt && \
+echo "Waiting for core network deployment to complete before proceeding..." >> logs.txt && \
+echo $netstack >> networkstack.txt && \
+aws cloudformation wait stack-create-complete --stack-name $netstack && \
+echo "Deployed core network stack. Deploying attendee labs..." >> logs.txt
 
-# Iterator variable to avoid deploying more than 8 labs at a time (avoids AWS rate limits).
+# Iterator variable to prevent deploying more than 8 labs at a time to avoid AWS rate limits.
 i=1
 
 # Iterator variable for VPC CIDR blocks.
@@ -33,8 +42,30 @@ for attendee in $attendees
 do
     if [ $i == 8 ]
     then
-        echo "Deploying lab for $attendee..." >> logs.txt && stack=$(aws cloudformation create-stack --capabilities CAPABILITY_IAM --template-url https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/v3/vbaws-lab-backup-master.template --stack-name $attendee-backup-stack --output text --query "StackId" --region $RegionId --parameters ParameterKey=UserName,ParameterValue=$attendee ParameterKey=ProductionAccountId,ParameterValue=$ProductionAccountId ParameterKey=RegionId,ParameterValue=$RegionId ParameterKey=VpcCidr,ParameterValue=10.$vpc.0.0/16 ParameterKey=CmkPolicyRole,ParameterValue=$CmkPolicyRole ParameterKey=NetworkStackName,ParameterValue=$NetworkStackName) && echo "Attendee lab stack ID is $stack" >> logs.txt && echo "Deployed stack for $attendee. Waiting until stack deployment is complete before proceeding..." >> logs.txt && aws cloudformation wait stack-create-complete --stack-name $stack && i=1 && vpc=$((vpc + 1))
+        echo "Deploying lab for $attendee..." >> logs.txt && \
+        stack=$(aws cloudformation create-stack --capabilities CAPABILITY_IAM \
+        --template-url https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/v3/vbaws-lab-backup-main.template \
+        --stack-name $attendee-backup-stack --output text --query "StackId" --region $RegionId \
+        --parameters ParameterKey=UserName,ParameterValue=$attendee ParameterKey=ProductionAccountId,ParameterValue=$ProductionAccountId \
+        ParameterKey=RegionId,ParameterValue=$RegionId ParameterKey=VpcCidr,ParameterValue=10.$vpc.0.0/16 \
+        ParameterKey=CmkPolicyRole,ParameterValue=$CmkPolicyRole ParameterKey=NetworkStackName,ParameterValue=$NetworkStackName) && \
+        echo "Attendee lab stack ID is $stack" >> logs.txt && \
+        echo $stack >> stacks.txt && \
+        echo "Deployed stack for $attendee. Waiting until stack deployment is complete before proceeding..." >> logs.txt && \
+        aws cloudformation wait stack-create-complete --stack-name $stack && \
+        i=1 && vpc=$((vpc + 1))
     else
-        echo "Deploying lab for $attendee..." >> logs.txt && stack=$(aws cloudformation create-stack --capabilities CAPABILITY_IAM --template-url https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/v3/vbaws-lab-backup-master.template --stack-name $attendee-backup-stack --output text --query "StackId" --region $RegionId --parameters ParameterKey=UserName,ParameterValue=$attendee ParameterKey=ProductionAccountId,ParameterValue=$ProductionAccountId ParameterKey=RegionId,ParameterValue=$RegionId ParameterKey=VpcCidr,ParameterValue=10.$vpc.0.0/16 ParameterKey=CmkPolicyRole,ParameterValue=$CmkPolicyRole ParameterKey=NetworkStackName,ParameterValue=$NetworkStackName) && echo "Attendee lab stack ID is $stack" >> logs.txt && echo "Deployed stack for $attendee. Sleeping 10 seconds before next deployment..." >> logs.txt && i=$((i + 1)) && vpc=$((vpc + 1)) && sleep 10
+        echo "Deploying lab for $attendee..." >> logs.txt && \
+        stack=$(aws cloudformation create-stack --capabilities CAPABILITY_IAM \
+        --template-url https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/v3/vbaws-lab-backup-main.template \
+        --stack-name $attendee-backup-stack --output text --query "StackId" --region $RegionId \
+        --parameters ParameterKey=UserName,ParameterValue=$attendee ParameterKey=ProductionAccountId,ParameterValue=$ProductionAccountId \
+        ParameterKey=RegionId,ParameterValue=$RegionId ParameterKey=VpcCidr,ParameterValue=10.$vpc.0.0/16 \
+        ParameterKey=CmkPolicyRole,ParameterValue=$CmkPolicyRole ParameterKey=NetworkStackName,ParameterValue=$NetworkStackName) && \
+        echo "Attendee lab stack ID is $stack" >> logs.txt && \
+        echo $stack >> stacks.txt && \
+        echo "Deployed stack for $attendee. Sleeping 10 seconds before next deployment..." >> logs.txt && \
+        i=$((i + 1)) && vpc=$((vpc + 1)) && \
+        sleep 10
     fi
 done
