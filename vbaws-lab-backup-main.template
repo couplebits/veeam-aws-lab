@@ -1309,10 +1309,7 @@
         },
         "InstanceType": "t3.medium",
         "IamInstanceProfile": {
-          "Fn::GetAtt": [
-            "VcbInstanceProfile",
-            "Arn"
-          ]
+          "Ref": "VcbInstanceProfile"
         },
         "KeyName": "vbaws-lab-backup",
         "BlockDeviceMappings": [
