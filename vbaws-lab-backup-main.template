@@ -370,7 +370,7 @@
           }
         },
         "DestinationCidrBlock": {
-          "Fn::GetAtt":[
+          "Fn::GetAtt": [
             "BackupVPC",
             "CidrBlock"
           ]
@@ -786,7 +786,7 @@
                   "Fn::Join": [
                     "",
                     [
-                      "arn:aws:sts::",
+                      "arn:aws:iam::",
                       {
                         "Ref": "AWS::AccountId"
                       },
@@ -1309,7 +1309,10 @@
         },
         "InstanceType": "t3.medium",
         "IamInstanceProfile": {
-          "Ref": "VcbInstanceProfile"
+          "Fn::GetAtt": [
+            "VcbInstanceProfile",
+            "Arn"
+          ]
         },
         "KeyName": "vbaws-lab-backup",
         "BlockDeviceMappings": [
