@@ -1,3 +1,2 @@
 **/.DS_Store
-scripts/attendees.txt
-scripts/deploy-test.sh
+scripts/tests/*
