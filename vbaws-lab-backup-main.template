@@ -148,76 +148,76 @@
   "Mappings": {
     "RegionMap": {
       "us-east-1": {
-        "HVM64": "ami-01d64d03fd3da4685"
-      },
-      "us-east-2": {
-        "HVM64": "ami-032d2c2a2eb72d4cc"
-      },
-      "us-west-1": {
-        "HVM64": "ami-0e6180c67ec8d75f0"
-      },
-      "us-west-2": {
-        "HVM64": "ami-0a187023c1796a331"
-      },
-      "af-south-1": {
-        "HVM64": "ami-0738271cdb44fb1da"
-      },
-      "ap-south-1": {
-        "HVM64": "ami-0b876110746918e21"
-      },
-      "ap-northeast-2": {
-        "HVM64": "ami-0f7954f2ef19ae374"
-      },
-      "ap-southeast-1": {
-        "HVM64": "ami-052dab2454033a9e1"
-      },
-      "ap-southeast-2": {
-        "HVM64": "ami-0c0ca80e7520ea883"
-      },
-      "ap-southeast-3": {
-        "HVM64": "ami-0097c45e03987b8c1"
-      },
-      "ap-northeast-1": {
-        "HVM64": "ami-0fd88cdef00a44a3c"
-      },
-      "ca-central-1": {
-        "HVM64": "ami-0566013be96032266"
-      },
-      "eu-central-1": {
-        "HVM64": "ami-0220b641d11c2651c"
-      },
-      "eu-west-1": {
-        "HVM64": "ami-06ce4922128fcadfc"
-      },
-      "eu-west-2": {
-        "HVM64": "ami-098e708cf737bbe6d"
-      },
-      "eu-south-1": {
-        "HVM64": "ami-0a6e6011f4e943998"
-      },
-      "eu-west-3": {
-        "HVM64": "ami-0d3ac2d99abcef31a"
-      },
-      "eu-north-1": {
-        "HVM64": "ami-0c46900d53c8147e7"
-      },
-      "sa-east-1": {
-        "HVM64": "ami-0f18a59a2880cb58b"
-      },
-      "me-south-1": {
-        "HVM64": "ami-0cdfa3c4c8ec11a94"
-      },
-      "ap-east-1": {
-        "HVM64": "ami-0dd789af5119c10a8"
-      },
-      "ap-northeast-3": {
-        "HVM64": "ami-0d6493ebee363f105"
+          "HVM64": "ami-0e3684ce1440e944c"
       },
       "us-gov-east-1": {
-        "HVM64": "ami-06a9b6586f361570c"
+          "HVM64": "ami-0ae964892f34bc39b"
       },
       "us-gov-west-1": {
-        "HVM64": "ami-0e79e30c590cb549b"
+          "HVM64": "ami-07a34e5ccac5e0cb0"
+      },
+      "us-east-2": {
+          "HVM64": "ami-0494d65a03ba42770"
+      },
+      "us-west-1": {
+          "HVM64": "ami-0d136751414f6bf6d"
+      },
+      "us-west-2": {
+          "HVM64": "ami-08c14f656742efba9"
+      },
+      "ca-central-1": {
+          "HVM64": "ami-0d3e3f74ab95a37d7"
+      },
+      "eu-central-1": {
+          "HVM64": "ami-0a9ca3989dc169286"
+      },
+      "eu-west-1": {
+          "HVM64": "ami-080351e24e226763f"
+      },
+      "eu-west-2": {
+          "HVM64": "ami-0a4867852ea5949b7"
+      },
+      "eu-west-3": {
+          "HVM64": "ami-0da9f07c5e2c3fd57"
+      },
+      "eu-north-1": {
+          "HVM64": "ami-03a3e77cb638b906f"
+      },
+      "eu-south-1": {
+          "HVM64": "ami-0e4d41d344d862a16"
+      },
+      "ap-southeast-1": {
+          "HVM64": "ami-0ea66d49186af8d88"
+      },
+      "ap-southeast-2": {
+          "HVM64": "ami-05bd572125ebee64a"
+      },
+      "ap-southeast-3": {
+          "HVM64": "ami-0b57ca7c2ac040665"
+      },
+      "ap-south-1": {
+          "HVM64": "ami-05abc56fd2ecc7eab"
+      },
+      "ap-northeast-1": {
+          "HVM64": "ami-09ab71d2560b838bc"
+      },
+      "ap-northeast-2": {
+          "HVM64": "ami-00dfc62baf2b0a285"
+      },
+      "ap-northeast-3": {
+          "HVM64": "ami-0e01535bf379a6530"
+      },
+      "ap-east-1": {
+          "HVM64": "ami-09e3ca13d1723914c"
+      },
+      "sa-east-1": {
+          "HVM64": "ami-07b803b7c752aed7e"
+      },
+      "me-south-1": {
+          "HVM64": "ami-0dbf599ae0fbaf290"
+      },
+      "af-south-1": {
+          "HVM64": "ami-0605cfc0c327bff3a"
       }
     }
   },
@@ -436,6 +436,41 @@
         ]
       }
     },
+    "BackupPrivateSubnetAcl": {
+      "Type": "AWS::EC2::NetworkAcl",
+      "Properties": {
+        "VpcId": {
+          "Ref": "BackupVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "UserName"
+                  },
+                  "backup-private-subnet-acl"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "BackupPrivateSubnetAclAssociation": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "BackupPrivateSubnetAcl"
+        },
+        "SubnetId": {
+          "Ref": "BackupPrivateSubnet"
+        }
+      }
+    },
     "BackupPrivateRouteTable": {
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
@@ -562,7 +597,7 @@
         }
       }
     },
-    "BackupVpcEndpointEbs": {
+    "BackupVpcEndpointSqs": {
       "Type": "AWS::EC2::VPCEndpoint",
       "Properties": {
         "VpcId": {
@@ -576,7 +611,7 @@
         ],
         "PrivateDnsEnabled": true,
         "ServiceName": {
-          "Fn::Sub": "com.amazonaws.${AWS::Region}.ebs"
+          "Fn::Sub": "com.amazonaws.${AWS::Region}.sqs"
         }
       }
     },
@@ -616,7 +651,7 @@
                   {
                     "Ref": "UserName"
                   },
-                  "backup-public-sgrule"
+                  "backup-public-sg"
                 ]
               ]
             }
@@ -630,7 +665,7 @@
         "VpcId": {
           "Ref": "BackupVPC"
         },
-        "GroupDescription": "Allow HTTPS access on TCP 443",
+        "GroupDescription": "Private access security group",
         "GroupName": {
           "Fn::Join": [
             "-",
@@ -642,16 +677,6 @@
             ]
           ]
         },
-        "SecurityGroupIngress": [
-          {
-            "IpProtocol": "tcp",
-            "FromPort": 443,
-            "ToPort": 443,
-            "CidrIp": {
-              "Ref": "VpcCidr"
-            }
-          }
-        ],
         "Tags": [
           {
             "Key": "Name",
@@ -662,7 +687,7 @@
                   {
                     "Ref": "UserName"
                   },
-                  "backup-private-sgrule"
+                  "backup-private-sg"
                 ]
               ]
             }
@@ -1457,6 +1482,9 @@
             ]
           ]
         },
+        "Capabilities": [
+          "CAPABILITY_NAMED_IAM"
+        ],
         "Parameters": [
           {
             "ParameterKey": "UserName",
@@ -1468,6 +1496,15 @@
             "ParameterKey": "CmkPolicyRole",
             "ParameterValue": {
               "Ref": "CmkPolicyRole"
+            }
+          },
+          {
+            "ParameterKey": "VeeamApplianceRole",
+            "ParameterValue": {
+              "Fn::GetAtt": [
+                "VeeamImpersonationRoleV1",
+                "Arn"
+              ]
             }
           }
         ],

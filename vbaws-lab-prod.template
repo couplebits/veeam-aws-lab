@@ -8,6 +8,10 @@
       "MaxLength": 5,
       "ConstraintDescription": "Username must be lowercase and cannot contain more than 5 characters."
     },
+    "VeeamApplianceRole": {
+      "Description": "The Veeam appliance impersonation role",
+      "Type": "String"
+    },
     "CmkPolicyRole": {
       "Description": "Specify the name of the IAM role that will be given access to the key created for the lab.",
       "Type": "String"
@@ -372,7 +376,7 @@
       "DependsOn": "ProdAttachIGW",
       "Properties": {
         "ImageId": {
-              "Ref": "LatestUbuntuJammyAmi"
+          "Ref": "LatestUbuntuJammyAmi"
         },
         "InstanceType": "t3.micro",
         "KeyName": "vbaws-lab-prod",
@@ -434,6 +438,110 @@
               "KmsKeyId": {
                 "Ref": "ProdKmsCmk"
               }
+            }
+          }
+        ]
+      }
+    },
+    "VeeamCrossAccountRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "UserName"
+              },
+              "xacct-veeam-role"
+            ]
+          ]
+        },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Ref": "VeeamApplianceRole"
+                }
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "vcb-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ebs:ListChangedBlocks",
+                    "ebs:ListSnapshotBlocks",
+                    "ec2:CreateSnapshot",
+                    "ec2:CreateSnapshots",
+                    "ec2:CreateTags",
+                    "ec2:DeleteSnapshot",
+                    "ec2:DeleteTags",
+                    "ec2:DescribeAvailabilityZones",
+                    "ec2:DescribeConversionTasks",
+                    "ec2:DescribeImages",
+                    "ec2:DescribeInstanceAttribute",
+                    "ec2:DescribeInstances",
+                    "ec2:DescribeInstanceTypes",
+                    "ec2:DescribeRegions",
+                    "ec2:DescribeSnapshots",
+                    "ec2:DescribeSubnets",
+                    "ec2:DescribeTags",
+                    "ec2:DescribeVolumeAttribute",
+                    "ec2:DescribeVolumes",
+                    "ec2:GetEbsDefaultKmsKeyId",
+                    "ec2:ModifySnapshotAttribute",
+                    "events:DeleteRule",
+                    "events:DescribeRule",
+                    "events:ListTargetsByRule",
+                    "events:PutRule",
+                    "events:PutTargets",
+                    "events:RemoveTargets",
+                    "iam:GetContextKeysForPrincipalPolicy",
+                    "iam:ListAccountAliases",
+                    "iam:ListInstanceProfiles",
+                    "iam:SimulatePrincipalPolicy",
+                    "kms:CreateGrant",
+                    "kms:DescribeKey",
+                    "kms:GetKeyPolicy",
+                    "kms:ListAliases",
+                    "kms:ListKeys",
+                    "kms:ReEncryptFrom",
+                    "kms:ReEncryptTo",
+                    "servicequotas:ListServiceQuotas",
+                    "sns:CreateTopic",
+                    "sns:DeleteTopic",
+                    "sns:ListSubscriptionsByTopic",
+                    "sns:ListTopics",
+                    "sns:SetTopicAttributes",
+                    "sns:Subscribe",
+                    "sns:Unsubscribe",
+                    "sqs:CreateQueue",
+                    "sqs:DeleteMessage",
+                    "sqs:DeleteQueue",
+                    "sqs:ListQueues",
+                    "sqs:ReceiveMessage",
+                    "sqs:SetQueueAttributes",
+                    "ssm:DescribeInstanceInformation",
+                    "ssm:GetCommandInvocation",
+                    "ssm:SendCommand"
+                  ],
+                  "Resource": "*"
+                }
+              ]
             }
           }
         ]
