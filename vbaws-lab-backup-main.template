@@ -148,76 +148,76 @@
   "Mappings": {
     "RegionMap": {
       "us-east-1": {
-          "HVM64": "ami-0e3684ce1440e944c"
+        "HVM64": "ami-0e3684ce1440e944c"
       },
       "us-gov-east-1": {
-          "HVM64": "ami-0ae964892f34bc39b"
+        "HVM64": "ami-0ae964892f34bc39b"
       },
       "us-gov-west-1": {
-          "HVM64": "ami-07a34e5ccac5e0cb0"
+        "HVM64": "ami-07a34e5ccac5e0cb0"
       },
       "us-east-2": {
-          "HVM64": "ami-0494d65a03ba42770"
+        "HVM64": "ami-0494d65a03ba42770"
       },
       "us-west-1": {
-          "HVM64": "ami-0d136751414f6bf6d"
+        "HVM64": "ami-0d136751414f6bf6d"
       },
       "us-west-2": {
-          "HVM64": "ami-08c14f656742efba9"
+        "HVM64": "ami-08c14f656742efba9"
       },
       "ca-central-1": {
-          "HVM64": "ami-0d3e3f74ab95a37d7"
+        "HVM64": "ami-0d3e3f74ab95a37d7"
       },
       "eu-central-1": {
-          "HVM64": "ami-0a9ca3989dc169286"
+        "HVM64": "ami-0a9ca3989dc169286"
       },
       "eu-west-1": {
-          "HVM64": "ami-080351e24e226763f"
+        "HVM64": "ami-080351e24e226763f"
       },
       "eu-west-2": {
-          "HVM64": "ami-0a4867852ea5949b7"
+        "HVM64": "ami-0a4867852ea5949b7"
       },
       "eu-west-3": {
-          "HVM64": "ami-0da9f07c5e2c3fd57"
+        "HVM64": "ami-0da9f07c5e2c3fd57"
       },
       "eu-north-1": {
-          "HVM64": "ami-03a3e77cb638b906f"
+        "HVM64": "ami-03a3e77cb638b906f"
       },
       "eu-south-1": {
-          "HVM64": "ami-0e4d41d344d862a16"
+        "HVM64": "ami-0e4d41d344d862a16"
       },
       "ap-southeast-1": {
-          "HVM64": "ami-0ea66d49186af8d88"
+        "HVM64": "ami-0ea66d49186af8d88"
       },
       "ap-southeast-2": {
-          "HVM64": "ami-05bd572125ebee64a"
+        "HVM64": "ami-05bd572125ebee64a"
       },
       "ap-southeast-3": {
-          "HVM64": "ami-0b57ca7c2ac040665"
+        "HVM64": "ami-0b57ca7c2ac040665"
       },
       "ap-south-1": {
-          "HVM64": "ami-05abc56fd2ecc7eab"
+        "HVM64": "ami-05abc56fd2ecc7eab"
       },
       "ap-northeast-1": {
-          "HVM64": "ami-09ab71d2560b838bc"
+        "HVM64": "ami-09ab71d2560b838bc"
       },
       "ap-northeast-2": {
-          "HVM64": "ami-00dfc62baf2b0a285"
+        "HVM64": "ami-00dfc62baf2b0a285"
       },
       "ap-northeast-3": {
-          "HVM64": "ami-0e01535bf379a6530"
+        "HVM64": "ami-0e01535bf379a6530"
       },
       "ap-east-1": {
-          "HVM64": "ami-09e3ca13d1723914c"
+        "HVM64": "ami-09e3ca13d1723914c"
       },
       "sa-east-1": {
-          "HVM64": "ami-07b803b7c752aed7e"
+        "HVM64": "ami-07b803b7c752aed7e"
       },
       "me-south-1": {
-          "HVM64": "ami-0dbf599ae0fbaf290"
+        "HVM64": "ami-0dbf599ae0fbaf290"
       },
       "af-south-1": {
-          "HVM64": "ami-0605cfc0c327bff3a"
+        "HVM64": "ami-0605cfc0c327bff3a"
       }
     }
   },
@@ -828,7 +828,10 @@
                       }
                     ]
                   ]
-                }
+                },
+                "Service": [
+                  "backup.amazonaws.com"
+                ]
               },
               "Action": [
                 "sts:AssumeRole"
