@@ -2,7 +2,7 @@
 
 CloudFormation templates for deploying Veeam Backup for AWS lab into two accounts and regions and bash scripts for mass deployments.
 
-Created by Eric Ellenberg - Sr Systems Engineer, Public Cloud Solutions, Veeam
+Created by Eric Ellenberg, Veeam Software
 
 ## REQUIREMENTS
 
