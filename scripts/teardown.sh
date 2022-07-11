@@ -42,7 +42,8 @@ networkStack=$(cat networkstack.txt)
 aws cloudformation delete-stack --stack-name $networkStack
 echo "Deletion command for $networkStack successful." >> logs.txt
 aws cloudformation wait stack-delete-complete --stack-name $networkStack
-echo "Deletion of the core network stack is complete. Thank you for using this lab." >> logs.txt
+echo "Deletion of the core network stack is complete." >> logs.txt
+echo "Thank you for using this lab." >> logs.txt
 
-# Remove the stacks file and networkstack file.
-rm $stacksFile $networkStackFile
+# (OPTIONAL) Remove the stacks file and networkstack file after the teardown is complete.
+# rm $stacksFile $networkStackFile

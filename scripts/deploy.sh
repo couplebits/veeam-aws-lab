@@ -4,7 +4,7 @@
 # AWS CLI v2 - https://github.com/aws/aws-cli/tree/v2
 
 # Declare the file where the list of attendees is located.
-attendeesFile=attendees.txt
+attendeesFile=
 
 # Specify the name of the network stack that will be deployed for the lab.
 NetworkStackName=
@@ -12,11 +12,17 @@ NetworkStackName=
 # Specify the 12-digit AWS account ID of the production account.
 ProductionAccountId=
 
-# Specify the region where you are deploying the master template.
+# Specify the region where you are deploying the main template.
 RegionId=
 
-# Specify the name of the IAM role that will be given access to the key created for the lab.
-CmkPolicyRole=
+# Specify the name of the IAM role in the organization that will be used for administrative access in the lab.
+AdminRole=
+
+# Specify the role ID (starting with AROA) of the IAM role in the backup account that will be used for administrative access in the lab.
+AdminRoleId=
+
+# Specify the user ID (starting with AIDA) of the IAM user in the backup account that will be used for administrative access in the lab.
+AdminUserId=
 
 # Deploy the stack for the core network. Wait for the core network stack to complete before deploying attendee labs.
 echo "Deploying core network stack for lab..." >> logs.txt && \
@@ -39,7 +45,8 @@ i=1
 # Iterator variable for VPC CIDR blocks.
 vpc=1
 
-# Deploy the stack for each attendee. On each 8th attendee's deployment, the script will wait until their deployment is complete before proceeding to avoid exceeding AWS rate limits.
+# Deploy the stack for each attendee.
+# On each 8th attendee's deployment, the script will wait until their deployment is complete before proceeding to avoid exceeding AWS rate limits.
 for attendee in $attendees
 do
     if [ $i == 8 ]
@@ -48,9 +55,15 @@ do
         stack=$(aws cloudformation create-stack --capabilities CAPABILITY_IAM \
         --template-url https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/v3/vbaws-lab-backup-main.template \
         --stack-name $attendee-backup-stack --output text --query "StackId" --region $RegionId \
-        --parameters ParameterKey=UserName,ParameterValue=$attendee ParameterKey=ProductionAccountId,ParameterValue=$ProductionAccountId \
-        ParameterKey=RegionId,ParameterValue=$RegionId ParameterKey=VpcCidr,ParameterValue=10.$vpc.0.0/16 \
-        ParameterKey=CmkPolicyRole,ParameterValue=$CmkPolicyRole ParameterKey=NetworkStackName,ParameterValue=$NetworkStackName) && \
+        --parameters \
+        ParameterKey=UserName,ParameterValue=$attendee \
+        ParameterKey=ProductionAccountId,ParameterValue=$ProductionAccountId \
+        ParameterKey=RegionId,ParameterValue=$RegionId \
+        ParameterKey=VpcCidr,ParameterValue=10.$vpc.0.0/16 \
+        ParameterKey=AdminRole,ParameterValue=$AdminRole \
+        ParameterKey=AdminRoleId,ParameterValue=$AdminRoleId \
+        ParameterKey=AdminUserId,ParameterValue=$AdminUserId \
+        ParameterKey=NetworkStackName,ParameterValue=$NetworkStackName) && \
         echo "Attendee lab stack ID is $stack" >> logs.txt && \
         echo $stack >> stacks.txt && \
         echo "Deployed stack for $attendee. Waiting until stack deployment is complete before proceeding..." >> logs.txt && \
@@ -61,9 +74,15 @@ do
         stack=$(aws cloudformation create-stack --capabilities CAPABILITY_IAM \
         --template-url https://veeam-aws-cloudformation.s3.amazonaws.com/veeam-aws-lab/v3/vbaws-lab-backup-main.template \
         --stack-name $attendee-backup-stack --output text --query "StackId" --region $RegionId \
-        --parameters ParameterKey=UserName,ParameterValue=$attendee ParameterKey=ProductionAccountId,ParameterValue=$ProductionAccountId \
-        ParameterKey=RegionId,ParameterValue=$RegionId ParameterKey=VpcCidr,ParameterValue=10.$vpc.0.0/16 \
-        ParameterKey=CmkPolicyRole,ParameterValue=$CmkPolicyRole ParameterKey=NetworkStackName,ParameterValue=$NetworkStackName) && \
+        --parameters \
+        ParameterKey=UserName,ParameterValue=$attendee \
+        ParameterKey=ProductionAccountId,ParameterValue=$ProductionAccountId \
+        ParameterKey=RegionId,ParameterValue=$RegionId \
+        ParameterKey=VpcCidr,ParameterValue=10.$vpc.0.0/16 \
+        ParameterKey=AdminRole,ParameterValue=$AdminRole \
+        ParameterKey=AdminRoleId,ParameterValue=$AdminRoleId \
+        ParameterKey=AdminUserId,ParameterValue=$AdminUserId \
+        ParameterKey=NetworkStackName,ParameterValue=$NetworkStackName) && \
         echo "Attendee lab stack ID is $stack" >> logs.txt && \
         echo $stack >> stacks.txt && \
         echo "Deployed stack for $attendee. Sleeping 10 seconds before next deployment..." >> logs.txt && \
