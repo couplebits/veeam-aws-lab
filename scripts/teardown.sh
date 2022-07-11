@@ -4,6 +4,7 @@
 # AWS CLI v2 - https://github.com/aws/aws-cli/tree/v2
 
 # Declare the files where the stack IDs are located for the network stack and attendee lab stacks.
+# The defaults reflect the deploy script's unmodified configuration.
 stacksFile=stacks.txt
 networkStackFile=networkstack.txt
 
