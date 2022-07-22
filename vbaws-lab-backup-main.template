@@ -46,10 +46,12 @@
         },
         {
           "Label": {
-            "default": "CMK Policy Role"
+            "default": "Admin Role and Admin User"
           },
           "Parameters": [
-            "CmkPolicyRole"
+            "AdminRole",
+            "AdminRoleId",
+            "AdminUserId"
           ]
         },
         {
@@ -77,8 +79,14 @@
         "NetworkStackName": {
           "default": "Name of the core network stack for the lab"
         },
-        "CmkPolicyRole": {
-          "default": "IAM role that will be given access to the KMS key created for the lab"
+        "AdminRole": {
+          "default": "IAM role that will be given access to the KMS key used in the lab"
+        },
+        "AdminRoleId": {
+          "default": "IAM role that will be given access to the S3 bucket used in the lab"
+        },
+        "AdminUserId": {
+          "default": "IAM user that will be given access to the S3 bucket used in the lab"
         },
         "LatestWindowsServer2022Ami": {
           "default": "Do not change this value. This is the AMI that will be used to launch the jumpbox"
@@ -135,8 +143,16 @@
       "Description": "Specify the name of the core network stack that was deployed for this lab. This is a prerequisite. If you have not deployed the core network stack, refer to the lab instructions to deploy it first.",
       "Type": "String"
     },
-    "CmkPolicyRole": {
-      "Description": "Specify the name of the IAM role that will be given access to the KMS key created for the lab.",
+    "AdminRole": {
+      "Description": "Specify the name of the IAM role that will be used for lab exercises.",
+      "Type": "String"
+    },
+    "AdminRoleId": {
+      "Description": "Specify the role ID (starting with AROA) of the IAM role that will be used for lab exercises.",
+      "Type": "String"
+    },
+    "AdminUserId": {
+      "Description": "Specify the user ID (starting with AIDA) of the IAM user that will be used for lab exercises.",
       "Type": "String"
     },
     "LatestWindowsServer2022Ami": {
@@ -235,15 +251,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-vpc"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-backup-vpc"
             }
           }
         ]
@@ -256,15 +264,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-igw"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-backup-igw"
             }
           }
         ]
@@ -304,21 +304,12 @@
             }
           ]
         },
-        "AvailabilityZone": "us-east-1a",
         "MapPublicIpOnLaunch": true,
         "Tags": [
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-public-subnet"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-backup-public-subnet"
             }
           }
         ]
@@ -334,15 +325,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-public-rt"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-backup-public-rt"
             }
           }
         ]
@@ -416,59 +399,15 @@
             }
           ]
         },
-        "AvailabilityZone": "us-east-1a",
         "MapPublicIpOnLaunch": false,
         "Tags": [
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-private-subnet"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-backup-private-subnet"
             }
           }
         ]
-      }
-    },
-    "BackupPrivateSubnetAcl": {
-      "Type": "AWS::EC2::NetworkAcl",
-      "Properties": {
-        "VpcId": {
-          "Ref": "BackupVPC"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-private-subnet-acl"
-                ]
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "BackupPrivateSubnetAclAssociation": {
-      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
-      "Properties": {
-        "NetworkAclId": {
-          "Ref": "BackupPrivateSubnetAcl"
-        },
-        "SubnetId": {
-          "Ref": "BackupPrivateSubnet"
-        }
       }
     },
     "BackupPrivateRouteTable": {
@@ -481,15 +420,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-private-rt"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-backup-private-rt"
             }
           }
         ]
@@ -507,15 +438,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-tgw-attachment"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-backup-private-tgwattachment"
             }
           }
         ],
@@ -597,24 +520,6 @@
         }
       }
     },
-    "BackupVpcEndpointSqs": {
-      "Type": "AWS::EC2::VPCEndpoint",
-      "Properties": {
-        "VpcId": {
-          "Ref": "BackupVPC"
-        },
-        "VpcEndpointType": "Interface",
-        "SubnetIds": [
-          {
-            "Ref": "BackupPrivateSubnet"
-          }
-        ],
-        "PrivateDnsEnabled": true,
-        "ServiceName": {
-          "Fn::Sub": "com.amazonaws.${AWS::Region}.sqs"
-        }
-      }
-    },
     "BackupPublicSG": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
@@ -622,17 +527,6 @@
           "Ref": "BackupVPC"
         },
         "GroupDescription": "Allow RDP access on TCP 3389",
-        "GroupName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "UserName"
-              },
-              "backup-public-sg"
-            ]
-          ]
-        },
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
@@ -645,15 +539,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-public-sg"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-backup-public-sg"
             }
           }
         ]
@@ -666,30 +552,24 @@
           "Ref": "BackupVPC"
         },
         "GroupDescription": "Private access security group",
-        "GroupName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "UserName"
-              },
-              "backup-private-sg"
-            ]
-          ]
-        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 3389,
+            "ToPort": 3389,
+            "CidrIp": {
+              "Fn::GetAtt": [
+                "BackupVPC",
+                "CidrBlock"
+              ]
+            }
+          }
+        ],
         "Tags": [
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "backup-private-sg"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-backup-private-sg"
             }
           }
         ]
@@ -699,15 +579,7 @@
       "Type": "AWS::S3::Bucket",
       "Properties": {
         "BucketName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "UserName"
-              },
-              "bucket-veeam-aws-lab"
-            ]
-          ]
+          "Fn::Sub": "${UserName}-bucket-veeam-aws-lab"
         },
         "AccessControl": "Private",
         "PublicAccessBlockConfiguration": {
@@ -715,6 +587,50 @@
           "BlockPublicPolicy": true,
           "IgnorePublicAcls": true,
           "RestrictPublicBuckets": true
+        }
+      }
+    },
+    "BackupBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "BackupBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:aws:s3:::${BackupBucket}"
+                },
+                {
+                  "Fn::Sub": "arn:aws:s3:::${BackupBucket}/*"
+                }
+              ],
+              "Condition": {
+                "StringNotLike": {
+                  "aws:userId": [
+                    {
+                      "Fn::Sub": "${AWS::AccountId}"
+                    },
+                    {
+                      "Fn::Sub": "${AdminRoleId}:*"
+                    },
+                    {
+                      "Fn::Sub": "${AdminUserId}"
+                    },
+                    {
+                      "Fn::Sub": "${BackupBucketEmptyOnDeleteLambdaRole.RoleId}"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
         }
       }
     },
@@ -737,7 +653,31 @@
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
-          "ZipFile": "import boto3\nimport json\nimport logging\nimport cfnresponse\n\ndef lambda_handler(event, context):\n  print('Received event: %s' % json.dumps(event))\n  status = cfnresponse.SUCCESS\n  try:\n      eventbucket = event['ResourceProperties']['BucketName']\n      if event['RequestType'] == 'Delete':\n          s3 = boto3.resource('s3')\n          bucket = s3.Bucket(eventbucket)\n          bucket.objects.all().delete()\n  except Exception as e:\n      logging.error('Exception: %s' % e, exc_info=True)\n      status = cfnresponse.FAILED\n  finally:\n      cfnresponse.send(event, context, status, {}, context.log_stream_name)\n"
+          "ZipFile": {
+            "Fn::Join": [
+              "\n",
+              [
+                "import boto3",
+                "import json",
+                "import logging",
+                "import cfnresponse",
+                "def lambda_handler(event, context):",
+                "  print('Received event: %s' % json.dumps(event))",
+                "  status = cfnresponse.SUCCESS",
+                "  try:",
+                "      eventbucket = event['ResourceProperties']['BucketName']",
+                "      if event['RequestType'] == 'Delete':",
+                "          s3 = boto3.resource('s3')",
+                "          bucket = s3.Bucket(eventbucket)",
+                "          bucket.objects.all().delete()",
+                "  except Exception as e:",
+                "      logging.error('Exception: %s' % e, exc_info=True)",
+                "      status = cfnresponse.FAILED",
+                "  finally:",
+                "      cfnresponse.send(event, context, status, {}, context.log_stream_name)"
+              ]
+            ]
+          }
         },
         "Description": "Lambda function which empties the bucket prior to deletion when the stack is deleted.",
         "Handler": "index.lambda_handler",
@@ -808,26 +748,7 @@
               "Effect": "Allow",
               "Principal": {
                 "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":role/",
-                      {
-                        "Fn::Join": [
-                          "/",
-                          [
-                            {
-                              "Ref": "VeeamImpersonationRoleV1"
-                            }
-                          ]
-                        ]
-                      }
-                    ]
-                  ]
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${VeeamImpersonationRoleV1}"
                 },
                 "Service": [
                   "backup.amazonaws.com"
@@ -1265,16 +1186,7 @@
         "Threshold": 0,
         "AlarmActions": [
           {
-            "Fn::Join": [
-              "",
-              [
-                "arn:aws:automate:",
-                {
-                  "Ref": "AWS::Region"
-                },
-                ":ec2:reboot"
-              ]
-            ]
+            "Fn::Sub": "arn:aws:automate:${AWS::Region}:ec2:reboot"
           }
         ],
         "Dimensions": [
@@ -1300,16 +1212,7 @@
         "Threshold": 0,
         "AlarmActions": [
           {
-            "Fn::Join": [
-              "",
-              [
-                "arn:aws:automate:",
-                {
-                  "Ref": "AWS::Region"
-                },
-                ":ec2:recover"
-              ]
-            ]
+            "Fn::Sub": "arn:aws:automate:${AWS::Region}:ec2:recover"
           }
         ],
         "Dimensions": [
@@ -1360,15 +1263,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "vbaws"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-vbaws"
             }
           }
         ],
@@ -1406,241 +1301,68 @@
     "JumpBoxInstance": {
       "Type": "AWS::EC2::Instance",
       "DependsOn": "BackupAttachIGW",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "packages": {
+              "msi": {
+                "awscliv2": "https://awscli.amazonaws.com/AWSCLIV2.msi"
+              }
+            }
+          }
+        }
+      },
       "Properties": {
         "ImageId": {
           "Ref": "LatestWindowsServer2022Ami"
         },
         "InstanceType": "t3.large",
         "KeyName": "vbaws-lab-backup",
-        "Tags": [
+        "SubnetId": {
+          "Ref": "BackupPublicSubnet"
+        },
+        "SecurityGroupIds": [
           {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "jumpbox"
-                ]
-              ]
-            }
-          },
-          {
-            "Key": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "tag"
-                ]
-              ]
-            },
-            "Value": {
-              "Ref": "UserName"
-            }
-          }
-        ],
-        "NetworkInterfaces": [
-          {
-            "GroupSet": [
-              {
-                "Ref": "BackupPublicSG"
-              }
-            ],
-            "AssociatePublicIpAddress": true,
-            "DeviceIndex": "0",
-            "DeleteOnTermination": true,
-            "SubnetId": {
-              "Ref": "BackupPublicSubnet"
-            }
+            "Ref": "BackupPublicSG"
           }
         ],
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
             "Ebs": {
-              "VolumeType": "gp3",
               "VolumeSize": 30,
               "DeleteOnTermination": true
             }
           }
-        ]
-      }
-    },
-    "BackupKmsCmk": {
-      "Type": "AWS::KMS::Key",
-      "Properties": {
-        "EnableKeyRotation": true,
-        "PendingWindowInDays": 7,
-        "KeyPolicy": {
-          "Id": "vbaws-lab-key-policy",
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Sid": "Enable IAM User Permissions",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":root"
-                    ]
-                  ]
-                }
-              },
-              "Action": "kms:*",
-              "Resource": "*"
-            },
-            {
-              "Sid": "Allow access for Key Administrators",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":role/",
-                      {
-                        "Fn::Join": [
-                          "/",
-                          [
-                            {
-                              "Ref": "CmkPolicyRole"
-                            }
-                          ]
-                        ]
-                      }
-                    ]
-                  ]
-                }
-              },
-              "Action": [
-                "kms:Create*",
-                "kms:Describe*",
-                "kms:Enable*",
-                "kms:List*",
-                "kms:Put*",
-                "kms:Update*",
-                "kms:Revoke*",
-                "kms:Disable*",
-                "kms:Get*",
-                "kms:Delete*",
-                "kms:TagResource",
-                "kms:UntagResource",
-                "kms:ScheduleKeyDeletion",
-                "kms:CancelKeyDeletion"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Sid": "Allow use of the key",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":role/",
-                      {
-                        "Fn::Join": [
-                          "/",
-                          [
-                            {
-                              "Ref": "CmkPolicyRole"
-                            }
-                          ]
-                        ]
-                      }
-                    ]
-                  ]
-                }
-              },
-              "Action": [
-                "kms:Encrypt",
-                "kms:Decrypt",
-                "kms:ReEncrypt*",
-                "kms:GenerateDataKey*",
-                "kms:DescribeKey"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Sid": "Allow attachment of persistent resources",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":role/",
-                      {
-                        "Fn::Join": [
-                          "/",
-                          [
-                            {
-                              "Ref": "CmkPolicyRole"
-                            }
-                          ]
-                        ]
-                      }
-                    ]
-                  ]
-                }
-              },
-              "Action": [
-                "kms:CreateGrant",
-                "kms:ListGrants",
-                "kms:RevokeGrant"
-              ],
-              "Resource": "*",
-              "Condition": {
-                "Bool": {
-                  "kms:GrantIsForAWSResource": true
-                }
-              }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-jumpbox"
             }
-          ]
-        }
-      }
-    },
-    "BackupKmsCmkAlias": {
-      "Type": "AWS::KMS::Alias",
-      "Properties": {
-        "AliasName": {
-          "Fn::Join": [
-            "",
-            [
-              "alias/",
-              {
-                "Ref": "UserName"
-              },
-              "-cmk"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<script>\n",
+                "cfn-init.exe --stack ",
+                {
+                  "Ref": "AWS::StackId"
+                },
+                " --resource JumpBoxInstance",
+                " --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "</script>"
+              ]
             ]
-          ]
-        },
-        "TargetKeyId": {
-          "Ref": "BackupKmsCmk"
+          }
         }
       }
     },
@@ -1648,15 +1370,7 @@
       "Type": "AWS::CloudFormation::StackSet",
       "Properties": {
         "StackSetName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "UserName"
-              },
-              "prod-stack"
-            ]
-          ]
+          "Fn::Sub": "${UserName}-prod-stack"
         },
         "Capabilities": [
           "CAPABILITY_NAMED_IAM"
@@ -1669,18 +1383,21 @@
             }
           },
           {
-            "ParameterKey": "CmkPolicyRole",
+            "ParameterKey": "VpcCidr",
             "ParameterValue": {
-              "Ref": "CmkPolicyRole"
+              "Ref": "VpcCidr"
             }
           },
           {
             "ParameterKey": "VeeamApplianceRole",
             "ParameterValue": {
-              "Fn::GetAtt": [
-                "VeeamImpersonationRoleV1",
-                "Arn"
-              ]
+              "Ref": "VeeamImpersonationRoleV1"
+            }
+          },
+          {
+            "ParameterKey": "AdminRole",
+            "ParameterValue": {
+              "Ref": "AdminRole"
             }
           }
         ],
@@ -1707,7 +1424,7 @@
   },
   "Outputs": {
     "VbawsInstanceId": {
-      "Description": "InstanceId of the newly created Veeam Backup for AWS instance.",
+      "Description": "InstanceId of the Veeam Backup for AWS instance.",
       "Value": {
         "Ref": "VbawsInstance"
       }

@@ -8,11 +8,16 @@
       "MaxLength": 5,
       "ConstraintDescription": "Username must be lowercase and cannot contain more than 5 characters."
     },
+    "VpcCidr": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "Description": "Specify an IPv4 CIDR. This CIDR must not overlap with the core network stack's CIDR. Example: 10.1.0.0/16.",
+      "Type": "String"
+    },
     "VeeamApplianceRole": {
       "Description": "The Veeam appliance impersonation role",
       "Type": "String"
     },
-    "CmkPolicyRole": {
+    "AdminRole": {
       "Description": "Specify the name of the IAM role that will be given access to the key created for the lab.",
       "Type": "String"
     },
@@ -25,7 +30,9 @@
     "ProdVPC": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
-        "CidrBlock": "10.1.0.0/16",
+        "CidrBlock": {
+          "Ref": "VpcCidr"
+        },
         "EnableDnsHostnames": true,
         "EnableDnsSupport": true,
         "InstanceTenancy": "default",
@@ -33,15 +40,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "prod-vpc"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-prod-vpc"
             }
           }
         ]
@@ -53,22 +52,29 @@
         "VpcId": {
           "Ref": "ProdVPC"
         },
-        "CidrBlock": "10.1.0.0/24",
+        "CidrBlock": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::Cidr": [
+                {
+                  "Fn::GetAtt": [
+                    "ProdVPC",
+                    "CidrBlock"
+                  ]
+                },
+                2,
+                8
+              ]
+            }
+          ]
+        },
         "MapPublicIpOnLaunch": true,
-        "AvailabilityZone": "us-east-1a",
         "Tags": [
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "prod-subnet"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-prod-subnet"
             }
           }
         ]
@@ -81,15 +87,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "prod-igw"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-prod-igw"
             }
           }
         ]
@@ -116,15 +114,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "prod-rt"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-prod-rt"
             }
           }
         ]
@@ -161,17 +151,6 @@
           "Ref": "ProdVPC"
         },
         "GroupDescription": "Allow SSH access on TCP 22",
-        "GroupName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "UserName"
-              },
-              "prod-sg"
-            ]
-          ]
-        },
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
@@ -184,15 +163,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "prod-sg"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-prod-sg"
             }
           }
         ]
@@ -204,7 +175,7 @@
         "EnableKeyRotation": true,
         "PendingWindowInDays": 7,
         "KeyPolicy": {
-          "Id": "vbaws-lab-key-policy",
+          "Id": "key-consolepolicy-3",
           "Version": "2012-10-17",
           "Statement": [
             {
@@ -212,16 +183,7 @@
               "Effect": "Allow",
               "Principal": {
                 "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":root"
-                    ]
-                  ]
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
                 }
               },
               "Action": "kms:*",
@@ -232,26 +194,7 @@
               "Effect": "Allow",
               "Principal": {
                 "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":role/",
-                      {
-                        "Fn::Join": [
-                          "/",
-                          [
-                            {
-                              "Ref": "CmkPolicyRole"
-                            }
-                          ]
-                        ]
-                      }
-                    ]
-                  ]
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${AdminRole}"
                 }
               },
               "Action": [
@@ -277,26 +220,7 @@
               "Effect": "Allow",
               "Principal": {
                 "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":role/",
-                      {
-                        "Fn::Join": [
-                          "/",
-                          [
-                            {
-                              "Ref": "CmkPolicyRole"
-                            }
-                          ]
-                        ]
-                      }
-                    ]
-                  ]
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${AdminRole}"
                 }
               },
               "Action": [
@@ -313,26 +237,7 @@
               "Effect": "Allow",
               "Principal": {
                 "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":role/",
-                      {
-                        "Fn::Join": [
-                          "/",
-                          [
-                            {
-                              "Ref": "CmkPolicyRole"
-                            }
-                          ]
-                        ]
-                      }
-                    ]
-                  ]
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${AdminRole}"
                 }
               },
               "Action": [
@@ -355,16 +260,7 @@
       "Type": "AWS::KMS::Alias",
       "Properties": {
         "AliasName": {
-          "Fn::Join": [
-            "",
-            [
-              "alias/",
-              {
-                "Ref": "UserName"
-              },
-              "-cmk"
-            ]
-          ]
+          "Fn::Sub": "alias/${UserName}-cmk"
         },
         "TargetKeyId": {
           "Ref": "ProdKmsCmk"
@@ -380,50 +276,27 @@
         },
         "InstanceType": "t3.micro",
         "KeyName": "vbaws-lab-prod",
+        "SubnetId": {
+          "Ref": "ProdSubnet"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "ProdSG"
+          }
+        ],
         "Tags": [
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "ec2-ubuntu"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-ec2-ubuntu"
             }
           },
           {
             "Key": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "UserName"
-                  },
-                  "tag"
-                ]
-              ]
+              "Fn::Sub": "${UserName}-tag"
             },
             "Value": {
               "Ref": "UserName"
-            }
-          }
-        ],
-        "NetworkInterfaces": [
-          {
-            "GroupSet": [
-              {
-                "Ref": "ProdSG"
-              }
-            ],
-            "AssociatePublicIpAddress": true,
-            "DeviceIndex": "0",
-            "DeleteOnTermination": true,
-            "SubnetId": {
-              "Ref": "ProdSubnet"
             }
           }
         ],
@@ -431,8 +304,6 @@
           {
             "DeviceName": "/dev/sda1",
             "Ebs": {
-              "VolumeType": "gp3",
-              "VolumeSize": 10,
               "DeleteOnTermination": true,
               "Encrypted": true,
               "KmsKeyId": {
@@ -447,15 +318,7 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "RoleName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "UserName"
-              },
-              "source-iam-role"
-            ]
-          ]
+          "Fn::Sub": "${UserName}-source-iam-role"
         },
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
@@ -490,42 +353,82 @@
                   "Action": [
                     "ebs:ListChangedBlocks",
                     "ebs:ListSnapshotBlocks",
+                    "ec2:AttachVolume",
+                    "ec2:CopySnapshot",
+                    "ec2:CreateKeyPair",
                     "ec2:CreateSnapshot",
                     "ec2:CreateSnapshots",
                     "ec2:CreateTags",
+                    "ec2:CreateVolume",
+                    "ec2:DeleteKeyPair",
                     "ec2:DeleteSnapshot",
                     "ec2:DeleteTags",
+                    "ec2:DeleteVolume",
+                    "ec2:DeregisterImage",
+                    "ec2:DescribeAccountAttributes",
                     "ec2:DescribeAvailabilityZones",
                     "ec2:DescribeConversionTasks",
                     "ec2:DescribeImages",
                     "ec2:DescribeInstanceAttribute",
                     "ec2:DescribeInstances",
+                    "ec2:DescribeInstanceStatus",
                     "ec2:DescribeInstanceTypes",
+                    "ec2:DescribeKeyPairs",
+                    "ec2:DescribeNetworkInterfaces",
                     "ec2:DescribeRegions",
+                    "ec2:DescribeRouteTables",
+                    "ec2:DescribeSecurityGroups",
+                    "ec2:DescribeSnapshotAttribute",
                     "ec2:DescribeSnapshots",
                     "ec2:DescribeSubnets",
                     "ec2:DescribeTags",
                     "ec2:DescribeVolumeAttribute",
                     "ec2:DescribeVolumes",
+                    "ec2:DescribeVpcEndpoints",
+                    "ec2:DescribeVpcs",
+                    "ec2:DetachVolume",
                     "ec2:GetEbsDefaultKmsKeyId",
+                    "ec2:ImportImage",
+                    "ec2:ModifyInstanceAttribute",
                     "ec2:ModifySnapshotAttribute",
+                    "ec2:ModifyVolume",
+                    "ec2:RunInstances",
+                    "ec2:StartInstances",
+                    "ec2:StopInstances",
+                    "ec2:TerminateInstances",
                     "events:DeleteRule",
                     "events:DescribeRule",
                     "events:ListTargetsByRule",
                     "events:PutRule",
                     "events:PutTargets",
                     "events:RemoveTargets",
+                    "iam:AddRoleToInstanceProfile",
+                    "iam:AttachRolePolicy",
+                    "iam:CreateInstanceProfile",
+                    "iam:DeleteInstanceProfile",
+                    "iam:DeleteRolePolicy",
+                    "iam:DetachRolePolicy",
                     "iam:GetContextKeysForPrincipalPolicy",
+                    "iam:GetInstanceProfile",
+                    "iam:GetRole",
                     "iam:ListAccountAliases",
+                    "iam:ListAttachedRolePolicies",
                     "iam:ListInstanceProfiles",
+                    "iam:ListInstanceProfilesForRole",
+                    "iam:ListRolePolicies",
+                    "iam:PassRole",
+                    "iam:PutRolePolicy",
+                    "iam:RemoveRoleFromInstanceProfile",
                     "iam:SimulatePrincipalPolicy",
                     "kms:CreateGrant",
                     "kms:DescribeKey",
+                    "kms:GenerateDataKeyWithoutPlaintext",
                     "kms:GetKeyPolicy",
                     "kms:ListAliases",
                     "kms:ListKeys",
                     "kms:ReEncryptFrom",
                     "kms:ReEncryptTo",
+                    "s3:GetBucketLocation",
                     "servicequotas:ListServiceQuotas",
                     "sns:CreateTopic",
                     "sns:DeleteTopic",
@@ -550,14 +453,6 @@
             }
           }
         ]
-      }
-    }
-  },
-  "Outputs": {
-    "InstanceId": {
-      "Description": "InstanceId of the newly created EC2 instance",
-      "Value": {
-        "Ref": "ProdEC2"
       }
     }
   }
