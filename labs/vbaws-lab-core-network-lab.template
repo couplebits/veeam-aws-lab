@@ -1,0 +1,542 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Veeam Backup for AWS Lab Setup - Backup Account - Core Network",
+  "Parameters": {
+    "VpcCidr": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "Description": "Specify an IPv4 CIDR. This CIDR must not overlap with the lab attendee's CIDR. Example: 10.0.0.0/16.",
+      "Type": "String"
+    },
+    "AdminRole": {
+      "Description": "Specify the name of the IAM role that will be used for lab exercises.",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "CoreVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "VpcCidr"
+        },
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-vpc"
+          },
+          {
+            "Key": "Flex",
+            "Value": "flex3"
+          }
+        ]
+      }
+    },
+    "CoreIGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-igw"
+          },
+          {
+            "Key": "Flex",
+            "Value": "flex3"
+          }
+        ]
+      }
+    },
+    "CoreAttachIGW": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "CoreVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "CoreIGW"
+        }
+      }
+    },
+    "CorePublicSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "CoreVPC"
+        },
+        "CidrBlock": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::Cidr": [
+                {
+                  "Fn::GetAtt": [
+                    "CoreVPC",
+                    "CidrBlock"
+                  ]
+                },
+                2,
+                8
+              ]
+            }
+          ]
+        },
+        "AvailabilityZone": "us-east-1a",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-public-subnet"
+          }
+        ]
+      }
+    },
+    "CorePublicSubnetRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "CoreVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-public-rt"
+          },
+          {
+            "Key": "Flex",
+            "Value": "flex3"
+          }
+        ]
+      }
+    },
+    "CorePublicSubnetRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "CoreAttachIGW",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "CorePublicSubnetRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "CoreIGW"
+        }
+      }
+    },
+    "CorePublicSubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "CorePublicSubnet"
+        },
+        "RouteTableId": {
+          "Ref": "CorePublicSubnetRouteTable"
+        }
+      }
+    },
+    "CoreNatGateway": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "CoreNatGatewayElasticIp",
+            "AllocationId"
+          ]
+        },
+        "SubnetId": {
+          "Ref": "CorePublicSubnet"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-nat"
+          },
+          {
+            "Key": "Flex",
+            "Value": "flex3"
+          }
+        ]
+      }
+    },
+    "CoreNatGatewayElasticIp": {
+      "DependsOn": "CoreAttachIGW",
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "CorePrivateSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "CoreVPC"
+        },
+        "CidrBlock": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::Cidr": [
+                {
+                  "Fn::GetAtt": [
+                    "CoreVPC",
+                    "CidrBlock"
+                  ]
+                },
+                2,
+                8
+              ]
+            }
+          ]
+        },
+        "AvailabilityZone": "us-east-1a",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-private-subnet"
+          }
+        ]
+      }
+    },
+    "CorePrivateSubnetRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "CoreVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-private-rt"
+          },
+          {
+            "Key": "Flex",
+            "Value": "flex3"
+          }
+        ]
+      }
+    },
+    "CorePrivateSubnetRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "CorePrivateSubnetTransitGatewayAttachment",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "CorePrivateSubnetRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "CoreNatGateway"
+        }
+      }
+    },
+    "CorePrivateRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "CorePrivateSubnet"
+        },
+        "RouteTableId": {
+          "Ref": "CorePrivateSubnetRouteTable"
+        }
+      }
+    },
+    "CoreTransitGateway": {
+      "Type": "AWS::EC2::TransitGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-tgw"
+          }
+        ]
+      }
+    },
+    "CoreTransitGatewayRouteTable": {
+      "Type": "AWS::EC2::TransitGatewayRouteTable",
+      "Properties": {
+        "TransitGatewayId": {
+          "Ref": "CoreTransitGateway"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-tgw-rt"
+          },
+          {
+            "Key": "Flex",
+            "Value": "flex3"
+          }
+        ]
+      }
+    },
+    "CoreTransitGatewayStaticRoute": {
+      "Type": "AWS::EC2::TransitGatewayRoute",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "TransitGatewayAttachmentId": {
+          "Ref": "CorePrivateSubnetTransitGatewayAttachment"
+        },
+        "TransitGatewayRouteTableId": {
+          "Ref": "CoreTransitGatewayRouteTable"
+        }
+      }
+    },
+    "CorePrivateSubnetTransitGatewayAttachment": {
+      "Type": "AWS::EC2::TransitGatewayAttachment",
+      "DependsOn": "CoreTransitGatewayRtAssociationPropagationChanger",
+      "Properties": {
+        "SubnetIds": [
+          {
+            "Ref": "CorePrivateSubnet"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "core-tgw-attachment"
+          }
+        ],
+        "TransitGatewayId": {
+          "Ref": "CoreTransitGateway"
+        },
+        "VpcId": {
+          "Ref": "CoreVPC"
+        }
+      }
+    },
+    "CoreTransitGatewayRtAssociationPropagationChanger": {
+      "Type": "Custom::ChangeCoreTransitGatewayRtAssociationPropagation",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CoreTransitGatewayRtAssociationPropagationChangerLambda",
+            "Arn"
+          ]
+        },
+        "TgwId": {
+          "Ref": "CoreTransitGateway"
+        },
+        "TgwRtId": {
+          "Ref": "CoreTransitGatewayRouteTable"
+        }
+      }
+    },
+    "CoreTransitGatewayRtAssociationPropagationChangerLambda": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "ZipFile": {
+            "Fn::Join": [
+              "\n",
+              [
+                "import boto3",
+                "import cfnresponse",
+                "import json",
+                "import logging",
+                "import os",
+                "",
+                "def lambda_handler(event, context):",
+                "    print('Received event: %s' % json.dumps(event))",
+                "    status = cfnresponse.SUCCESS",
+                "    try:",
+                "        eventtgw = event['ResourceProperties']['TgwId']",
+                "        eventtgwrt = event['ResourceProperties']['TgwRtId']",
+                "        if event['RequestType'] == 'Create':",
+                "            ec2client = boto3.client('ec2')",
+                "            response = ec2client.modify_transit_gateway(",
+                "              TransitGatewayId=eventtgw,",
+                "              Options={",
+                "                  'AssociationDefaultRouteTableId': eventtgwrt,",
+                "                  'PropagationDefaultRouteTableId': eventtgwrt",
+                "              },",
+                "            )",
+                "            print(response)",
+                "        elif event['RequestType'] == 'Delete':",
+                "            ec2client = boto3.client('ec2')",
+                "            for defaulttgwrt in ec2client.describe_transit_gateway_route_tables(",
+                "                    Filters=[",
+                "                        {",
+                "                            'Name': 'default-association-route-table',",
+                "                            'Values': [",
+                "                                'false'",
+                "                             ]",
+                "                        }",
+                "                    ])['TransitGatewayRouteTables']:",
+                "                response = ec2client.modify_transit_gateway(",
+                "                  TransitGatewayId=eventtgw,",
+                "                  Options={",
+                "                      'AssociationDefaultRouteTableId': defaulttgwrt['TransitGatewayRouteTableId'],",
+                "                      'PropagationDefaultRouteTableId': defaulttgwrt['TransitGatewayRouteTableId']",
+                "                  },",
+                "                )",
+                "                print(response)",
+                "    except Exception as e:",
+                "        logging.error('Exception: %s' % e, exc_info=True)",
+                "        status = cfnresponse.FAILED",
+                "    finally:",
+                "        cfnresponse.send(event, context, status, {}, context.log_stream_name)"
+              ]
+            ]
+          }
+        },
+        "Description": "Lambda function which changes the default tgw-rt to the tgw-rt created by this stack.",
+        "Handler": "index.lambda_handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "CoreTransitGatewayRtAssociationPropagationChangerLambdaRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.9",
+        "Timeout": 30
+      }
+    },
+    "CoreTransitGatewayRtAssociationPropagationChangerLambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "tgw-rt-changer-lambda-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:*",
+                    "ec2:*"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "CoreNetworkLockdownIamPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "DependsOn": "CorePrivateSubnetTransitGatewayAttachment",
+      "Properties": {
+        "Description": "IAM policy to lockdown privileges to the core network",
+        "ManagedPolicyName": "aws-flex3-core-network-lockdown-policy",
+        "Path": "/",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Deny",
+              "Action": [
+                "ec2:DeleteInternetGateway",
+                "ec2:DetachInternetGateway"
+              ],
+              "Resource": "arn:aws:ec2:*:*:internet-gateway/*",
+              "Condition": {
+                "StringEquals": {
+                  "ec2:ResourceTag/Flex": "flex3"
+                }
+              }
+            },
+            {
+              "Effect": "Deny",
+              "Action": "ec2:DeleteNatGateway",
+              "Resource": "arn:aws:ec2:*:*:natgateway/*",
+              "Condition": {
+                "StringEquals": {
+                  "ec2:ResourceTag/Flex": "flex3"
+                }
+              }
+            },
+            {
+              "Effect": "Deny",
+              "Action": [
+                "ec2:DeleteRouteTable",
+                "ec2:CreateRoute",
+                "ec2:ReplaceRoute",
+                "ec2:DeleteRoute"
+              ],
+              "Resource": "arn:aws:ec2:*:*:route-table/*",
+              "Condition": {
+                "StringEquals": {
+                  "ec2:ResourceTag/Flex": "flex3"
+                }
+              }
+            },
+            {
+              "Effect": "Deny",
+              "Action": "ec2:DeleteTransitGateway",
+              "Resource": "arn:aws:ec2:*:*:transit-gateway/*",
+              "Condition": {
+                "StringEquals": {
+                  "ec2:ResourceTag/Flex": "flex3"
+                }
+              }
+            },
+            {
+              "Effect": "Deny",
+              "Action": [
+                "ec2:DeleteTransitGatewayRouteTable",
+                "ec2:CreateTransitGatewayRoute",
+                "ec2:ReplaceTransitGatewayRoute",
+                "ec2:DeleteTransitGatewayRoute"
+              ],
+              "Resource": "arn:aws:ec2:*:*:transit-gateway-route-table/*",
+              "Condition": {
+                "StringEquals": {
+                  "ec2:ResourceTag/Flex": "flex3"
+                }
+              }
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "AdminRole"
+          }
+        ]          
+      }
+    }
+  },
+  "Outputs": {
+    "CoreTransitGatewayId": {
+      "Description": "ID of the transit gateway created by the stack.",
+      "Value": {
+        "Ref": "CoreTransitGateway"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-TransitGatewayId"
+        }
+      }
+    },
+    "CorePublicSubnetRouteTableId": {
+      "Description": "ID of the core network public subnet route table created by the stack.",
+      "Value": {
+        "Ref": "CorePublicSubnetRouteTable"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-CorePublicSubnetRouteTableId"
+        }
+      }
+    }
+  }
+}

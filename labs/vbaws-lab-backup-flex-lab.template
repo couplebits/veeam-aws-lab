@@ -1,0 +1,181 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Veeam Backup for AWS Lab Setup - Backup Flex Region",
+  "Parameters": {
+    "UserName": {
+      "Description": "First letter of first name, first four letters of last name, all lowercase. Five letters total. Example: Victor Flex -> vflex, or Woo Hoo -> wohoo",
+      "Type": "String",
+      "MaxLength": 5,
+      "ConstraintDescription": "Username must be lowercase and cannot contain more than 5 characters."
+    },
+    "VpcCidr": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "Description": "Specify an IPv4 CIDR. This CIDR must not overlap with the core network stack's CIDR. Example: 10.1.0.0/16.",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "BackupFlexVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "VpcCidr"
+        },
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": false,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-backup-flex-vpc"
+            }
+          }
+        ]
+      }
+    },
+    "BackupFlexIGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-backup-flex-igw"
+            }
+          }
+        ]
+      }
+    },
+    "BackupFlexAttachIGW": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "BackupFlexVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "BackupFlexIGW"
+        }
+      }
+    },
+    "BackupFlexSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "BackupFlexVPC"
+        },
+        "CidrBlock": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::Cidr": [
+                {
+                  "Fn::GetAtt": [
+                    "BackupFlexVPC",
+                    "CidrBlock"
+                  ]
+                },
+                2,
+                8
+              ]
+            }
+          ]
+        },
+        "AvailabilityZone": "us-west-1b",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-backup-flex-subnet"
+            }
+          }
+        ]
+      }
+    },
+    "BackupFlexRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "BackupFlexVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-backup-flex-rt"
+            }
+          }
+        ]
+      }
+    },
+    "BackupFlexRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "BackupFlexAttachIGW",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "BackupFlexRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "BackupFlexIGW"
+        }
+      }
+    },
+    "BackupFlexRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "BackupFlexSubnet"
+        },
+        "RouteTableId": {
+          "Ref": "BackupFlexRouteTable"
+        }
+      }
+    },
+    "BackupFlexSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "BackupFlexVPC"
+        },
+        "GroupDescription": "Enable HTTPS access on TCP 443",
+        "GroupName": {
+          "Fn::Sub": "${UserName}-backup-flex-sg"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-backup-flex-sg"
+            }
+          }
+        ]
+      }
+    },
+    "BackupVpcEndpointS3": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "RouteTableIds": [
+          {
+            "Ref": "BackupFlexRouteTable"
+          }
+        ],
+        "ServiceName": {
+          "Fn::Sub": "com.amazonaws.${AWS::Region}.s3"
+        },
+        "VpcId": {
+          "Ref": "BackupFlexVPC"
+        }
+      }
+    }
+  }
+}

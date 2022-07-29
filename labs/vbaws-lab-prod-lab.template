@@ -1,0 +1,454 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Veeam Backup for AWS Lab Setup - Production Account",
+  "Parameters": {
+    "UserName": {
+      "Description": "First letter of first name, first four letters of last name, all lowercase, 5 characters total. Example: Victor Flex -> vflex, or Woo Hoo -> wohoo",
+      "Type": "String",
+      "MaxLength": 5,
+      "ConstraintDescription": "Username must be lowercase and cannot contain more than 5 characters."
+    },
+    "VpcCidr": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "Description": "Specify an IPv4 CIDR. This CIDR must not overlap with the core network stack's CIDR. Example: 10.1.0.0/16.",
+      "Type": "String"
+    },
+    "AdminRole": {
+      "Description": "Specify the name of the IAM role that will be given access to the key created for the lab.",
+      "Type": "String"
+    },
+    "LatestUbuntuJammyAmi": {
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id"
+    }
+  },
+  "Resources": {
+    "ProdVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "VpcCidr"
+        },
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-prod-vpc"
+            }
+          }
+        ]
+      }
+    },
+    "ProdSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdVPC"
+        },
+        "CidrBlock": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::Cidr": [
+                {
+                  "Fn::GetAtt": [
+                    "ProdVPC",
+                    "CidrBlock"
+                  ]
+                },
+                2,
+                8
+              ]
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": true,
+        "AvailabilityZone": "us-east-1a",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-prod-subnet"
+            }
+          }
+        ]
+      }
+    },
+    "ProdIGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-prod-igw"
+            }
+          }
+        ]
+      }
+    },
+    "ProdAttachIGW": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "ProdIGW"
+        }
+      }
+    },
+    "ProdRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-prod-rt"
+            }
+          }
+        ]
+      }
+    },
+    "ProdRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "ProdAttachIGW",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "ProdRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "ProdIGW"
+        }
+      }
+    },
+    "ProdSubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "ProdSubnet"
+        },
+        "RouteTableId": {
+          "Ref": "ProdRouteTable"
+        }
+      }
+    },
+    "ProdSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "ProdVPC"
+        },
+        "GroupDescription": "Allow SSH access on TCP 22",
+        "GroupName": {
+          "Fn::Sub": "${UserName}-prod-sg"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 22,
+            "ToPort": 22,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-prod-sg"
+            }
+          }
+        ]
+      }
+    },
+    "ProdKmsCmk": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "EnableKeyRotation": true,
+        "PendingWindowInDays": 7,
+        "KeyPolicy": {
+          "Id": "key-consolepolicy-3",
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "Enable IAM User Permissions",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            },
+            {
+              "Sid": "Allow access for Key Administrators",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${AdminRole}"
+                }
+              },
+              "Action": [
+                "kms:Create*",
+                "kms:Describe*",
+                "kms:Enable*",
+                "kms:List*",
+                "kms:Put*",
+                "kms:Update*",
+                "kms:Revoke*",
+                "kms:Disable*",
+                "kms:Get*",
+                "kms:Delete*",
+                "kms:TagResource",
+                "kms:UntagResource",
+                "kms:ScheduleKeyDeletion",
+                "kms:CancelKeyDeletion"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "Allow use of the key",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${AdminRole}"
+                }
+              },
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "Allow attachment of persistent resources",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${AdminRole}"
+                }
+              },
+              "Action": [
+                "kms:CreateGrant",
+                "kms:ListGrants",
+                "kms:RevokeGrant"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "Bool": {
+                  "kms:GrantIsForAWSResource": true
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ProdKmsCmkAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": {
+          "Fn::Sub": "alias/${UserName}-cmk"
+        },
+        "TargetKeyId": {
+          "Ref": "ProdKmsCmk"
+        }
+      }
+    },
+    "ProdEC2": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": "ProdAttachIGW",
+      "Properties": {
+        "ImageId": {
+          "Ref": "LatestUbuntuJammyAmi"
+        },
+        "InstanceType": "t3.micro",
+        "KeyName": "vbaws-lab-prod",
+        "SubnetId": {
+          "Ref": "ProdSubnet"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "ProdSG"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${UserName}-ec2-ubuntu"
+            }
+          },
+          {
+            "Key": {
+              "Fn::Sub": "${UserName}-tag"
+            },
+            "Value": {
+              "Ref": "UserName"
+            }
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "DeleteOnTermination": true,
+              "Encrypted": true,
+              "KmsKeyId": {
+                "Ref": "ProdKmsCmk"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "VeeamCrossAccountRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": {
+          "Fn::Sub": "${UserName}-source-iam-role"
+        },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Ref": "AWS::AccountId"
+                }
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "vcb-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ebs:ListChangedBlocks",
+                    "ebs:ListSnapshotBlocks",
+                    "ec2:AttachVolume",
+                    "ec2:CopySnapshot",
+                    "ec2:CreateKeyPair",
+                    "ec2:CreateSnapshot",
+                    "ec2:CreateSnapshots",
+                    "ec2:CreateTags",
+                    "ec2:CreateVolume",
+                    "ec2:DeleteKeyPair",
+                    "ec2:DeleteSnapshot",
+                    "ec2:DeleteTags",
+                    "ec2:DeleteVolume",
+                    "ec2:DeregisterImage",
+                    "ec2:DescribeAccountAttributes",
+                    "ec2:DescribeAvailabilityZones",
+                    "ec2:DescribeConversionTasks",
+                    "ec2:DescribeImages",
+                    "ec2:DescribeInstanceAttribute",
+                    "ec2:DescribeInstances",
+                    "ec2:DescribeInstanceStatus",
+                    "ec2:DescribeInstanceTypes",
+                    "ec2:DescribeKeyPairs",
+                    "ec2:DescribeNetworkInterfaces",
+                    "ec2:DescribeRegions",
+                    "ec2:DescribeRouteTables",
+                    "ec2:DescribeSecurityGroups",
+                    "ec2:DescribeSnapshotAttribute",
+                    "ec2:DescribeSnapshots",
+                    "ec2:DescribeSubnets",
+                    "ec2:DescribeTags",
+                    "ec2:DescribeVolumeAttribute",
+                    "ec2:DescribeVolumes",
+                    "ec2:DescribeVpcEndpoints",
+                    "ec2:DescribeVpcs",
+                    "ec2:DetachVolume",
+                    "ec2:GetEbsDefaultKmsKeyId",
+                    "ec2:ImportImage",
+                    "ec2:ModifyInstanceAttribute",
+                    "ec2:ModifySnapshotAttribute",
+                    "ec2:ModifyVolume",
+                    "ec2:RunInstances",
+                    "ec2:StartInstances",
+                    "ec2:StopInstances",
+                    "ec2:TerminateInstances",
+                    "events:DeleteRule",
+                    "events:DescribeRule",
+                    "events:ListTargetsByRule",
+                    "events:PutRule",
+                    "events:PutTargets",
+                    "events:RemoveTargets",
+                    "iam:AddRoleToInstanceProfile",
+                    "iam:AttachRolePolicy",
+                    "iam:CreateInstanceProfile",
+                    "iam:DeleteInstanceProfile",
+                    "iam:DeleteRolePolicy",
+                    "iam:DetachRolePolicy",
+                    "iam:GetContextKeysForPrincipalPolicy",
+                    "iam:GetInstanceProfile",
+                    "iam:GetRole",
+                    "iam:ListAccountAliases",
+                    "iam:ListAttachedRolePolicies",
+                    "iam:ListInstanceProfiles",
+                    "iam:ListInstanceProfilesForRole",
+                    "iam:ListRolePolicies",
+                    "iam:PassRole",
+                    "iam:PutRolePolicy",
+                    "iam:RemoveRoleFromInstanceProfile",
+                    "iam:SimulatePrincipalPolicy",
+                    "kms:CreateGrant",
+                    "kms:DescribeKey",
+                    "kms:GenerateDataKeyWithoutPlaintext",
+                    "kms:GetKeyPolicy",
+                    "kms:ListAliases",
+                    "kms:ListKeys",
+                    "kms:ReEncryptFrom",
+                    "kms:ReEncryptTo",
+                    "s3:GetBucketLocation",
+                    "servicequotas:ListServiceQuotas",
+                    "sns:CreateTopic",
+                    "sns:DeleteTopic",
+                    "sns:ListSubscriptionsByTopic",
+                    "sns:ListTopics",
+                    "sns:SetTopicAttributes",
+                    "sns:Subscribe",
+                    "sns:Unsubscribe",
+                    "sqs:CreateQueue",
+                    "sqs:DeleteMessage",
+                    "sqs:DeleteQueue",
+                    "sqs:ListQueues",
+                    "sqs:ReceiveMessage",
+                    "sqs:SetQueueAttributes",
+                    "ssm:DescribeInstanceInformation",
+                    "ssm:GetCommandInvocation",
+                    "ssm:SendCommand"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
